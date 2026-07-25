@@ -26,8 +26,11 @@ data/interim/**
 data/processed/**
 data/external/**
 !data/README.md
+!data/raw/*.dvc
+!data/interim/*.dvc
+!data/processed/*.dvc
+!data/external/*.dvc
 
 # Generated outputs and local notebooks
 reports/generated/
 .ipynb_checkpoints/
-
