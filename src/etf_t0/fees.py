@@ -191,6 +191,8 @@ def break_even_for_round_trip(
 
     if entry_price <= 0:
         raise ValueError("entry price must be positive")
+    if entry_price % ETF_PRICE_TICK != 0:
+        raise ValueError("entry price must align to the 0.001 ETF price tick")
     if quantity <= 0 or quantity % 100 != 0:
         raise ValueError("quantity must be a positive multiple of 100 ETF units")
 

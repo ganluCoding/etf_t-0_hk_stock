@@ -79,6 +79,13 @@ def test_break_even_rejects_non_lot_quantity() -> None:
         break_even_for_round_trip(schedule=all_in, entry_price=Decimal(1), quantity=99)
 
 
+def test_break_even_rejects_an_entry_price_off_the_etf_tick() -> None:
+    all_in, _ = provisional_fee_scenarios()
+
+    with pytest.raises(ValueError, match="price tick"):
+        break_even_for_round_trip(schedule=all_in, entry_price=Decimal("1.0001"), quantity=100)
+
+
 def test_break_even_reprices_sell_side_percentage_fees() -> None:
     schedule = FeeSchedule(
         name="percentage-fee",
