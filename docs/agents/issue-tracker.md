@@ -11,6 +11,12 @@
 
 PRD 及重要决策先保存在 Git 中，再用 Issue 追踪其实施、讨论和验收。提交和 Pull Request 必须引用相关 Issue 编号。
 
-## 当前私有仓库的合入补偿控制
+## main 合入规则
 
-本仓库当前 GitHub 套餐不能对私有仓库启用分支保护规则（见 Issue #2）。在升级套餐或调整仓库可见性前，所有开发必须在功能分支完成、创建 Draft Pull Request、等待 `test` CI 通过，并仅由仓库所有者人工合入 `main`。不得直接推送 `main`。
+自 2026-07-25 起，公开仓库的 `main` 已启用 GitHub 技术保护（Issue #2 已完成）：
+
+- 必须经 Pull Request 合入，且 `test` CI 在当前 main 基线通过。
+- 必须解决 PR 对话；规则同样对管理员生效。
+- 禁止 force push 和删除 main。
+
+开发从 `agent/<scope>` 功能分支开始；创建 Draft PR，完成检查与审计后转为 ready for review。合并由拥有相应 GitHub 权限的人在规则满足后执行。
