@@ -1,6 +1,6 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.1
+- 文档状态：Draft v0.2
 - 更新日期：2026-07-25
 - 项目阶段：方案已完成初步 review，尚未开始数据采集与策略实施
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
@@ -137,6 +137,7 @@
 - The portfolio ledger will enforce 100-share lot constraints for purchases, available-cash constraints, sellable-inventory constraints and no uncovered short selling.
 - Overnight base inventory is permitted.
 - The initial research baseline will allocate 50% of the 10,000-yuan capital to base inventory and retain 50% as cash. This is a research baseline, not a live allocation recommendation.
+- The user-requested 30,000-yuan, maximum-20-round-trips-per-day calculation is a separate 30-day cost pressure scenario for Issue #8. It does not replace the frozen 10,000-yuan, 50% inventory / 50% cash research baseline, does not qualify as an execution backtest, and cannot support a strategy Go decision.
 - Total portfolio equity will equal cash plus inventory marked at a conservative executable liquidation price, less accrued costs.
 - Completed-grid profit will never be reported without unrealized inventory profit or loss and total capital usage.
 - The first 30 trading days will be used only for data acceptance, recent-volatility description, cost coverage and hypothesis generation.
@@ -147,6 +148,7 @@
 - Performance reporting will include net return, daily Sharpe ratio, maximum drawdown, worst day, turnover, cost as a percentage of gross profit, profit factor, partial-fill rate, maximum inventory, forced-exit share and active trading days.
 - Reports will show zero-cost, baseline-cost and stress-cost scenarios. Only baseline and stress results may support a Go decision.
 - Initial research risk controls will stop new trading after a 1% daily total-equity loss, prohibit additional downward grid entries above 80% invested capital, pause the strategy at a 3% equity drawdown, and treat a 5% drawdown as version failure.
+- Exploratory cost pressure calculations that intentionally omit these controls must say so in code and reports, and must not be called a strategy baseline or be used to advance G4–G8.
 - New orders will be suspended when the spread is approximately twice its normal comparable-session median or above its comparable-session 95th percentile.
 - New orders will be suspended when anchor data, IOPV, constituent prices or quotes are stale, or when the Hong Kong underlying market is closed and the model depends on live underlying prices.
 - Martingale sizing is prohibited.
