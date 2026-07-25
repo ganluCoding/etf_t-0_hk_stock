@@ -52,6 +52,7 @@ class FeeSchedule:
     handling_fee_rate: Decimal
     handling_fee_included_in_commission: bool
     stamp_duty_rate: Decimal = Decimal(0)
+    transfer_fee_rate: Decimal = Decimal(0)
     spread_bps_per_side: Decimal = Decimal(0)
     slippage_bps_per_side: Decimal = Decimal(0)
     fee_rounding_quantum: Decimal = CENT
@@ -67,6 +68,7 @@ class FeeSchedule:
             "minimum_commission": self.minimum_commission,
             "handling_fee_rate": self.handling_fee_rate,
             "stamp_duty_rate": self.stamp_duty_rate,
+            "transfer_fee_rate": self.transfer_fee_rate,
             "spread_bps_per_side": self.spread_bps_per_side,
             "slippage_bps_per_side": self.slippage_bps_per_side,
         }
@@ -89,12 +91,13 @@ class OrderCost:
     commission: Decimal
     handling_fee: Decimal
     stamp_duty: Decimal
+    transfer_fee: Decimal
     spread_cost: Decimal
     slippage_cost: Decimal
 
     @property
     def explicit_cost(self) -> Decimal:
-        return self.commission + self.handling_fee + self.stamp_duty
+        return self.commission + self.handling_fee + self.stamp_duty + self.transfer_fee
 
     @property
     def economic_cost(self) -> Decimal:
@@ -154,6 +157,7 @@ def cost_for_order(
         commission=commission,
         handling_fee=handling_fee,
         stamp_duty=schedule.round_fee(reference_notional * schedule.stamp_duty_rate),
+        transfer_fee=schedule.round_fee(reference_notional * schedule.transfer_fee_rate),
         spread_cost=schedule.round_fee(
             reference_notional * schedule.spread_bps_per_side / BASIS_POINT_DENOMINATOR
         ),
@@ -202,7 +206,9 @@ def break_even_for_round_trip(
         schedule=schedule, side=OrderSide.BUY, reference_notional=reference_notional
     )
     required_sell_proceeds = reference_notional + buy.economic_cost
-    variable_sell_rate = schedule.commission_rate + schedule.stamp_duty_rate
+    variable_sell_rate = (
+        schedule.commission_rate + schedule.stamp_duty_rate + schedule.transfer_fee_rate
+    )
     if not schedule.handling_fee_included_in_commission:
         variable_sell_rate += schedule.handling_fee_rate
     variable_sell_rate += (
@@ -268,5 +274,41 @@ def provisional_fee_scenarios() -> tuple[FeeSchedule, FeeSchedule]:
             handling_fee_included_in_commission=False,
             assumptions=common_assumptions
             + ("Handling fee is assumed separately charged at 0.04 per mille per side.",),
+        ),
+    )
+
+
+def cmb_user_reported_fee_scenarios() -> tuple[FeeSchedule, FeeSchedule]:
+    """Return the user-reported CMB minimum-fee scenarios for 159567 research.
+
+    The known terms are a 5-yuan minimum on every filled buy and sell, no stamp
+    duty, and no transfer fee. The percentage commission and handling-fee treatment
+    remain unknown, so these are lower-bound scenarios rather than final calibration.
+    """
+
+    common_assumptions = (
+        "User-reported 2026-07-25 CMB A-share account query for 159567: each filled buy and sell has a 5 yuan minimum commission.",
+        "User-reported: ETF secondary-market stamp duty and transfer fee are zero.",
+        "Commission percentage and partial-fill charging are unknown; commission_rate=0 models the confirmed minimum only.",
+        "Explicit fees are rounded to 0.01 yuan using ROUND_HALF_UP.",
+    )
+    return (
+        FeeSchedule(
+            name="cmb_user_reported_minimum_all_in_assumption",
+            commission_rate=Decimal(0),
+            minimum_commission=Decimal(5),
+            handling_fee_rate=Decimal("0.00004"),
+            handling_fee_included_in_commission=True,
+            assumptions=common_assumptions
+            + ("Handling fee is assumed included; this has not been verified with CMB.",),
+        ),
+        FeeSchedule(
+            name="cmb_user_reported_minimum_plus_handling_assumption",
+            commission_rate=Decimal(0),
+            minimum_commission=Decimal(5),
+            handling_fee_rate=Decimal("0.00004"),
+            handling_fee_included_in_commission=False,
+            assumptions=common_assumptions
+            + ("Handling fee is assumed separately charged; this has not been verified with CMB.",),
         ),
     )

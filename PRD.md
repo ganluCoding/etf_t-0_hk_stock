@@ -227,8 +227,8 @@ Failure at a gate stops advancement. It does not authorize additional parameter 
 
 ### Open Items
 
-- The user's broker and actual ETF commission schedule remain pending.
-- Whether the broker charges a 5-yuan minimum on each ETF order remains pending.
+- The user reported on 2026-07-25 that their CMB A-share account charges a 5-yuan minimum commission on each filled 159567 buy and sell, with no stamp duty or transfer fee. This is versioned as a user-reported lower-bound scenario, not a full broker-statement calibration.
+- The user's ETF commission percentage and partial-fill charging method remain pending.
 - Whether exchange handling fees are included in the user's quoted commission remains pending.
 - The initial free-data path is approved.
 - If minute-level history is insufficient, an alternative source will be considered separately.

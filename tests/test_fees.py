@@ -6,6 +6,7 @@ from etf_t0.fees import (
     FeeSchedule,
     OrderSide,
     break_even_for_round_trip,
+    cmb_user_reported_fee_scenarios,
     cost_for_order,
     provisional_fee_scenarios,
     round_trip_cost,
@@ -23,6 +24,21 @@ def test_10000_yuan_round_trip_has_ten_yuan_minimum_commission_cost() -> None:
     assert costs.economic_cost == Decimal("10.00")
     assert costs.provisional is True
     assert costs.schedule.name == "provisional_minimum_commission_all_in"
+
+
+def test_cmb_user_reported_minimum_has_ten_yuan_round_trip_and_no_tax_or_transfer() -> None:
+    all_in, separately_charged = cmb_user_reported_fee_scenarios()
+
+    all_in_costs = round_trip_cost(schedule=all_in, reference_notional=Decimal(10000))
+    separately_charged_costs = round_trip_cost(
+        schedule=separately_charged, reference_notional=Decimal(10000)
+    )
+
+    assert all_in_costs.economic_cost == Decimal("10.00")
+    assert all_in_costs.buy.stamp_duty == Decimal("0.00")
+    assert all_in_costs.buy.transfer_fee == Decimal("0.00")
+    assert separately_charged_costs.economic_cost == Decimal("10.80")
+    assert all_in.provisional is True
 
 
 def test_separate_handling_fee_is_not_double_counted_when_all_in() -> None:
