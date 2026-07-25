@@ -225,6 +225,8 @@
 
 Failure at a gate stops advancement. It does not authorize additional parameter tuning on the failed validation sample.
 
+G0 does not block raw-data acquisition, data-quality work or descriptive 30-day reporting under clearly labelled provisional costs. It does block any actual-cost conclusion, strategy Go decision, simulated-live progression and controlled live validation.
+
 ### Open Items
 
 - The user reported on 2026-07-25 that their CMB A-share account charges a 5-yuan minimum commission on each filled 159567 buy and sell, with no stamp duty or transfer fee. This is versioned as a user-reported lower-bound scenario, not a full broker-statement calibration.

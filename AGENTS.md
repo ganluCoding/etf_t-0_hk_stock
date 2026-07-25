@@ -14,6 +14,10 @@ The repository uses the canonical triage labels recorded in `docs/agents/triage-
 
 This is a single-context repository. Read `CONTEXT.md` and relevant files in `docs/adr/` before changing research, data, cost, execution, or risk behavior. See `docs/agents/domain.md`.
 
+### Registered sub-agents
+
+Reusable specialist roles and their activation prompts are recorded in `docs/agents/subagent-registry.md`. Use the PRD consistency auditor for every merged PR and every fifth user conversation.
+
 ## Working rules
 
 - This repository supports research and manual trading decisions only. Never add broker order submission, credential storage, or autonomous trading.
@@ -23,4 +27,3 @@ This is a single-context repository. Read `CONTEXT.md` and relevant files in `do
 - Do not commit secrets, account identifiers, API keys, tokens, or unredacted broker statements.
 - Every research change must preserve causal signal timing, full transaction costs, inventory constraints, and mark-to-executable-price equity accounting.
 - Use GitHub Issues for scoped work. Link commits and pull requests to their issue numbers.
-
