@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -110,3 +111,15 @@ def test_exchange_issued_mirror_requires_a_content_fingerprint() -> None:
 
     with pytest.raises(ValueError, match="SHA-256"):
         evidence.validate()
+
+
+def test_confirmed_record_rejects_empty_audit_fields_and_mirror_note() -> None:
+    record = next(item for item in load_universe_ledger(LEDGER_PATH) if item.code == "159567")
+    assert record.evidence is not None
+
+    for field in ("fund_name", "trading_name", "manager", "tracked_index", "security_status"):
+        with pytest.raises(ValueError, match=field):
+            replace(record, **{field: ""}).validate()
+
+    with pytest.raises(ValueError, match="source access note"):
+        replace(record, evidence=replace(record.evidence, source_access_note="")).validate()

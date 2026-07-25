@@ -55,6 +55,8 @@ class T0Evidence:
             or not re.fullmatch(r"[0-9a-f]{64}", self.source_content_sha256)
         ):
             raise ValueError("an exchange-issued mirror requires a SHA-256 content fingerprint")
+        if self.source_kind is EvidenceSourceKind.EXCHANGE_ISSUED_MIRROR and not self.source_access_note.strip():
+            raise ValueError("an exchange-issued mirror requires a source access note")
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,16 @@ class EtfUniverseRecord:
     notes: str = ""
 
     def validate(self) -> None:
+        required_audit_fields = {
+            "fund_name": self.fund_name,
+            "trading_name": self.trading_name,
+            "manager": self.manager,
+            "tracked_index": self.tracked_index,
+            "security_status": self.security_status,
+        }
+        missing_fields = [name for name, value in required_audit_fields.items() if not value.strip()]
+        if missing_fields:
+            raise ValueError(f"ETF record is missing required audit fields: {', '.join(missing_fields)}")
         if len(self.code) != 6 or not self.code.isdigit():
             raise ValueError("ETF code must be a six-digit string")
         if self.exchange not in {"SZSE", "SSE"}:
