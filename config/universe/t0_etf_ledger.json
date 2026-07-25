@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "purpose": "Evidence ledger for secondary-market same-day turnaround (T+0) research only.",
+  "records": [
+    {
+      "code": "159567",
+      "exchange": "SZSE",
+      "fund_name": "银华国证港股通创新药交易型开放式指数证券投资基金",
+      "trading_name": "港股创新药ETF",
+      "manager": "银华基金管理股份有限公司",
+      "tracked_index": "国证港股通创新药指数",
+      "listing_date": "2024-01-11",
+      "status": "confirmed",
+      "last_review_date": "2026-07-25",
+      "security_status": "listed; current tradability and suspension status must be checked before each research run",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://pdf.dfcfw.com/pdf/H2_AN202401081616760234_1.pdf",
+        "announcement_date": "2024-01-08",
+        "same_day_turnaround_quote": "银华国证港股通创新药交易型开放式指数证券投资基金（证券简称：港股创新药ETF，证券代码：159567）自2024年1月11日起在本所上市交易，并实施当日回转交易。",
+        "source_access_note": "No accessible SZSE-hosted canonical URL was located in the 2026-07-25 review. This PDF is a mirror of an announcement issued and signed by 深圳证券交易所; issuer, code, date and quoted wording were manually reviewed against the document. The source fingerprint permits a later re-verification if the host or document changes.",
+        "source_kind": "exchange_issued_mirror",
+        "source_content_sha256": "663f5de2093947bfc5207d659947dc89918f9bcc758390bec9dea88fffaf407b"
+      },
+      "notes": "This confirms secondary-market same-day turnaround eligibility only. It does not confirm broker availability, current suspension status, creation/redemption availability, fee treatment, liquidity, or strategy suitability."
+    }
+  ]
+}
