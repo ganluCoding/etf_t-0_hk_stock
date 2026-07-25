@@ -10,11 +10,14 @@ import argparse
 import json
 import math
 from dataclasses import asdict, dataclass
+from decimal import Decimal
 from pathlib import Path
 from statistics import mean, stdev
 from typing import Any
 
 import pandas as pd
+
+from etf_t0.fees import break_even_for_round_trip, cmb_user_reported_fee_scenarios
 
 ETF_TICK = 0.001
 LOT_SIZE = 100
@@ -351,6 +354,56 @@ def performance_summary(
     }
 
 
+def _break_even_summary(paths: list[HypotheticalRoundTrip]) -> dict[str, Any]:
+    """Use the audited fee engine to cost-cover every mechanical assumed path."""
+
+    scenarios: dict[str, Any] = {}
+    for schedule in cmb_user_reported_fee_scenarios():
+        results = [
+            break_even_for_round_trip(
+                schedule=schedule,
+                entry_price=Decimal(str(path.assumed_entry_price)),
+                quantity=path.quantity,
+            )
+            for path in paths
+        ]
+        scenarios[schedule.name] = {
+            "provisional": schedule.provisional,
+            "entry_price_range_cny": [
+                float(min(result.entry_price for result in results)),
+                float(max(result.entry_price for result in results)),
+            ],
+            "quantity_range": [
+                min(result.quantity for result in results),
+                max(result.quantity for result in results),
+            ],
+            "economic_round_trip_cost_range_cny": [
+                float(min(result.round_trip_cost.economic_cost for result in results)),
+                float(max(result.round_trip_cost.economic_cost for result in results)),
+            ],
+            "minimum_price_delta_range_cny_per_unit": [
+                float(min(result.minimum_tick_price_delta for result in results)),
+                float(max(result.minimum_tick_price_delta for result in results)),
+            ],
+            "minimum_tick_count_values": sorted(
+                {
+                    int(result.minimum_tick_price_delta / Decimal("0.001"))
+                    for result in results
+                }
+            ),
+            "required_return_range": [
+                float(min(result.required_return for result in results)),
+                float(max(result.required_return for result in results)),
+            ],
+            "assumptions": schedule.assumptions,
+        }
+    return {
+        "actual_broker_schedule_status": "G0_BLOCKED: percentage commission, handling-fee inclusion, partial-fill charging and statement reconciliation remain unverified",
+        "basis": f"{len(paths)} mechanical assumed paths using their entry print and 100-unit lot-constrained quantity",
+        "scenarios": scenarios,
+    }
+
+
 def run_mvp_report(
     frame: pd.DataFrame,
     *,
@@ -398,6 +451,8 @@ def run_mvp_report(
                 mean_reversion, capital=capital, trade_dates=selected_dates
             ),
         }
+        if scenario.name == "commission_floor":
+            break_even_paths = mechanical
     later_dates = selected_dates[-10:]
     earlier_dates = selected_dates[:-10]
     baseline_costs = scenarios[1]
@@ -455,6 +510,7 @@ def run_mvp_report(
             "bid_ask_and_slippage": "not observed; adverse tick scenarios are sensitivity tests, not measured execution costs",
         },
         "results": results,
+        "provisional_break_even_cost_coverage": _break_even_summary(break_even_paths),
         "chronological_descriptive_split_not_validation": {
             "earlier_20_dates": [earlier_dates[0], earlier_dates[-1]],
             "later_10_dates": [later_dates[0], later_dates[-1]],

@@ -143,6 +143,11 @@ def test_30_day_split_is_explicitly_descriptive_not_out_of_sample() -> None:
         for scenario in result["results"].values()
         for metrics in scenario.values()
     )
+    break_even = result["provisional_break_even_cost_coverage"]
+    all_in = break_even["scenarios"]["cmb_user_reported_minimum_all_in_assumption"]
+    assert break_even["actual_broker_schedule_status"].startswith("G0_BLOCKED")
+    assert all_in["minimum_tick_count_values"] == [1]
+    assert result["assumptions"]["mechanical_schedule"].startswith("20 deterministic")
 
 
 def test_report_rejects_incomplete_latest_session() -> None:
