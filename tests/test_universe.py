@@ -6,6 +6,7 @@ import pytest
 from etf_t0.universe import (
     EligibilityStatus,
     EtfUniverseRecord,
+    EvidenceSourceKind,
     T0Evidence,
     confirmed_t0_records,
     load_universe_ledger,
@@ -21,6 +22,8 @@ def test_159567_is_confirmed_only_with_explicit_exchange_evidence() -> None:
     assert record.status is EligibilityStatus.CONFIRMED
     assert record.evidence is not None
     assert record.evidence.issuer == "深圳证券交易所"
+    assert record.evidence.source_kind is EvidenceSourceKind.EXCHANGE_ISSUED_MIRROR
+    assert len(record.evidence.source_content_sha256 or "") == 64
     assert "实施当日回转交易" in record.evidence.same_day_turnaround_quote
     assert record.last_review_date == date(2026, 7, 25)
 
@@ -61,8 +64,49 @@ def test_confirmed_record_without_explicit_t0_language_is_rejected() -> None:
             announcement_date=date(2026, 1, 1),
             same_day_turnaround_quote="该基金上市交易。",
             source_access_note="test fixture",
+            source_kind=EvidenceSourceKind.FIRST_PARTY,
         ),
     )
 
     with pytest.raises(ValueError, match="当日回转交易"):
         record.validate()
+
+
+def test_confirmed_record_with_a_negative_t0_statement_is_rejected() -> None:
+    record = EtfUniverseRecord(
+        code="159997",
+        exchange="SZSE",
+        fund_name="示例 ETF",
+        trading_name="示例ETF",
+        manager="示例管理人",
+        tracked_index="示例指数",
+        listing_date=date(2026, 1, 2),
+        status=EligibilityStatus.CONFIRMED,
+        last_review_date=date(2026, 7, 25),
+        security_status="listed",
+        evidence=T0Evidence(
+            issuer="深圳证券交易所",
+            source_document_url="https://example.invalid/notice",
+            announcement_date=date(2026, 1, 1),
+            same_day_turnaround_quote="本基金不实施当日回转交易。",
+            source_access_note="test fixture",
+            source_kind=EvidenceSourceKind.FIRST_PARTY,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="negative 当日回转交易"):
+        record.validate()
+
+
+def test_exchange_issued_mirror_requires_a_content_fingerprint() -> None:
+    evidence = T0Evidence(
+        issuer="深圳证券交易所",
+        source_document_url="https://example.invalid/notice",
+        announcement_date=date(2026, 1, 1),
+        same_day_turnaround_quote="本基金实施当日回转交易。",
+        source_access_note="test fixture",
+        source_kind=EvidenceSourceKind.EXCHANGE_ISSUED_MIRROR,
+    )
+
+    with pytest.raises(ValueError, match="SHA-256"):
+        evidence.validate()

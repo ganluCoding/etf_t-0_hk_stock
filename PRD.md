@@ -51,7 +51,7 @@
 ## User Stories
 
 1. As an A 股账户投资者, I want to see which港股 ETF 有交易所当日回转证据, so that I do not mistakenly trade a T+1 product as T+0.
-2. As an A 股账户投资者, I want each ETF record to include the official announcement link and review date, so that the T+0 conclusion is auditable.
+2. As an A 股账户投资者, I want each ETF record to include the exchange-issued announcement link and review date, so that the T+0 conclusion is auditable.
 3. As an A 股账户投资者, I want 159567 to be used as the first benchmark instrument, so that the project starts from a concrete product.
 4. As an A 股账户投资者, I want similar T+0 ETFs to be compared with 159567, so that I can choose based on tradability rather than familiarity.
 5. As an A 股账户投资者, I want candidate ETFs ranked by liquidity, spread, volatility, fund size and premium/discount risk, so that high apparent volatility is not confused with good execution quality.
@@ -107,7 +107,7 @@
 
 - The product is a research and decision-support system. It will not connect to a broker for order submission, cancellation or account control.
 - The initial benchmark instrument is 159567. The universe will later include other Hong Kong, Hong Kong Stock Connect and cross-border ETFs only when an exchange announcement explicitly confirms same-day turnaround trading.
-- Every universe entry will include a first-party evidence URL, announcement date, last review date, current security status, legal fund name, trading code, manager and tracked index.
+- Every universe entry will include an exchange-issued announcement URL, announcement date, last review date, current security status, legal fund name, trading code, manager and tracked index. An original exchange or manager URL is preferred; when only an exchange-issued mirrored copy is accessible, the ledger must record its content SHA-256 fingerprint, issuer, exact T+0 quote and why the original URL was unavailable.
 - The universe service, market-data adapter, calendar service, fee engine, portfolio ledger, execution simulator, analysis engine and reporting layer will be separate modules.
 - External data providers will be isolated behind adapters because free endpoints, field names and retention periods can change.
 - The initial free-data path will prioritize native 5-minute OHLCV for the latest 30 complete trading days.
@@ -156,7 +156,7 @@
 
 - Tests will target externally observable research behavior and financial invariants, not internal class structure or implementation details.
 - The highest test seam for universe eligibility is: given official evidence and a review date, the system either includes an ETF as confirmed T+0 or rejects it as unverified.
-- The universe test suite will verify that no ETF can enter the confirmed pool without a first-party evidence URL and explicit same-day turnaround language.
+- The universe test suite will verify that no ETF can enter the confirmed pool without a source URL, an issuer, explicit affirmative same-day-turnaround language, and a SHA-256 fingerprint for any exchange-issued mirrored copy.
 - The highest test seam for data ingestion is: given a provider response, the system produces an immutable normalized dataset plus a quality report containing date range, source, units, timezone, session coverage and anomalies.
 - Data tests will cover duplicates, missing bars, zero prices, impossible values, unexplained gaps, stale observations and mixed units.
 - Session tests will verify the 48-bar expectation for a normal full core session and explicitly test opening auction, closing auction, lunch break and after-hours separation.
@@ -243,4 +243,3 @@ Failure at a gate stops advancement. It does not authorize additional parameter 
 - PRC Stamp Tax Law: https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193058/content.html
 - ChinaClear Shenzhen market fee schedule: https://www.chinaclear.cn/zdjs/fbzyls/202506/ab6384ba25514554a7eceaee3e521032/files/%E6%B7%B1%E5%9C%B3%E5%B8%82%E5%9C%BA%E8%AF%81%E5%88%B8%E7%99%BB%E8%AE%B0%E7%BB%93%E7%AE%97%E4%B8%9A%E5%8A%A1%E6%94%B6%E8%B4%B9%E5%8F%8A%E4%BB%A3%E6%94%B6%E7%A8%8E%E8%B4%B9%E4%B8%80%E8%A7%88%E8%A1%A8.pdf
 - AKShare public-fund data documentation: https://akshare.akfamily.xyz/data/fund/fund_public.html
-

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
@@ -19,6 +20,13 @@ class EligibilityStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class EvidenceSourceKind(str, Enum):
+    """How the exchange-issued announcement is accessed."""
+
+    FIRST_PARTY = "first_party"
+    EXCHANGE_ISSUED_MIRROR = "exchange_issued_mirror"
+
+
 @dataclass(frozen=True)
 class T0Evidence:
     """Evidence quoted from an exchange-issued listing or trading announcement."""
@@ -28,14 +36,25 @@ class T0Evidence:
     announcement_date: date
     same_day_turnaround_quote: str
     source_access_note: str
+    source_kind: EvidenceSourceKind
+    source_content_sha256: str | None = None
 
     def validate(self) -> None:
         if not self.issuer.strip():
             raise ValueError("T+0 evidence must identify its issuer")
         if not self.source_document_url.startswith("https://"):
             raise ValueError("T+0 evidence must use an HTTPS source document URL")
-        if "当日回转交易" not in self.same_day_turnaround_quote:
-            raise ValueError("T+0 evidence must explicitly state 当日回转交易")
+        quote = self.same_day_turnaround_quote.replace(" ", "")
+        negative_statements = ("不实施当日回转交易", "未实施当日回转交易")
+        if any(statement in quote for statement in negative_statements):
+            raise ValueError("T+0 evidence must not contain a negative 当日回转交易 statement")
+        if "实施当日回转交易" not in quote:
+            raise ValueError("T+0 evidence must explicitly state 实施当日回转交易")
+        if self.source_kind is EvidenceSourceKind.EXCHANGE_ISSUED_MIRROR and (
+            self.source_content_sha256 is None
+            or not re.fullmatch(r"[0-9a-f]{64}", self.source_content_sha256)
+        ):
+            raise ValueError("an exchange-issued mirror requires a SHA-256 content fingerprint")
 
 
 @dataclass(frozen=True)
@@ -87,6 +106,8 @@ def _parse_evidence(value: dict[str, Any] | None) -> T0Evidence | None:
         announcement_date=_parse_date(value["announcement_date"]),
         same_day_turnaround_quote=value["same_day_turnaround_quote"],
         source_access_note=value["source_access_note"],
+        source_kind=EvidenceSourceKind(value["source_kind"]),
+        source_content_sha256=value.get("source_content_sha256"),
     )
 
 
