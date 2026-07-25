@@ -6,6 +6,7 @@
 
 - [产品需求文档](PRD.md)
 - [领域上下文](CONTEXT.md)
+- [T+0 标的证据台账](docs/UNIVERSE_LEDGER.md)
 - [数据版本规则](docs/DATA_VERSIONING.md)
 - [架构决策记录](docs/adr/)
 - [GitHub Issues](https://github.com/ganluCoding/etf_t-0_hk_stock/issues)
@@ -25,4 +26,3 @@ uv run pytest
 ```
 
 数据文件保留在本机，具体规则见 `docs/DATA_VERSIONING.md`。不要将券商交割单、API 密钥或原始行情直接提交到 Git。
-
