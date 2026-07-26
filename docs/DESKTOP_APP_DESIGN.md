@@ -1,6 +1,6 @@
 # 目标 ETF 单代码桌面观察应用设计
 
-- 状态：Proposed v0.2
+- 状态：Approved v0.3；M1 fixed-fixture implementation complete
 - 任务：Issue #24
 - 日期：2026-07-26
 - 范围：产品、界面、应用服务与安全边界设计；不包含代码实现
@@ -334,6 +334,7 @@ TargetObservationService
 - PySide6 单窗口、代码输入、资格查询、No-Go 展示。
 - 使用固定测试夹具验证状态切换，不接实时行情。
 - 测试可信时钟、午休、集合竞价、盘后和恢复后清价。
+- Issue #26 已实现：159570 固定夹具、目标单代码界面、台账资格证据与策略 lineage 验证、`PROVISIONAL` 费用下界、连续竞价门禁、30秒不可重放失效清价和不支持代码 No-Go。使用说明见 `docs/DESKTOP_M1.md`。
 
 ### M2：本地数据集成
 
