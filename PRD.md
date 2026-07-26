@@ -1,8 +1,8 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.3
+- 文档状态：Draft v0.4
 - 更新日期：2026-07-26
-- 项目阶段：首批多标的 5 分钟数据采集和探索性网格筛选已实施；执行数据与正式策略验证仍未开始
+- 项目阶段：首批多标的 5 分钟数据采集、单策略网格筛选和有限多策略假设探索已实施；执行数据与正式策略验证仍未开始
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
 ## Problem Statement
@@ -102,6 +102,9 @@
 50. As an A 股账户投资者, I want live validation to begin with the minimum trading unit, so that unverified assumptions do not immediately risk the full 10,000 yuan.
 51. As an A 股账户投资者, I want all live orders placed manually by me, so that the research system never exercises account authority.
 52. As an A 股账户投资者, I want clear Go/No-Go stage gates, so that failed data, cost or robustness checks stop the project from advancing.
+53. As an A 股账户投资者, I want the same rule compared at one, two and four maximum daily round trips, so that I can see whether lower frequency improves cost-adjusted results.
+54. As an A 股账户投资者, I want a finite, predeclared set of mean-reversion, trend, breakout, volatility-filter and proxy-residual hypotheses, so that the research is not limited to one EMA rule.
+55. As an A 股账户投资者, I want every tested symbol and parameter combination retained, including failures, so that positive 30-day results are not cherry-picked or presented as validated profitability.
 
 ## Implementation Decisions
 
@@ -139,12 +142,16 @@
 - The initial research baseline will allocate 50% of the 10,000-yuan capital to base inventory and retain 50% as cash. This is a research baseline, not a live allocation recommendation.
 - The user-requested 30,000-yuan, maximum-20-round-trips-per-day calculation is a separate 30-day cost pressure scenario for Issue #8. It does not replace the frozen 10,000-yuan, 50% inventory / 50% cash research baseline, does not qualify as an execution backtest, and cannot support a strategy Go decision.
 - The first cross-sectional grid screen standardizes total capital at 30,000 yuan and limits the tactical comparison layer to 25% of total capital. This is an exploratory cross-symbol comparison requested by the user, not a PRD allocation change, live position recommendation or replacement for the 10,000-yuan baseline.
+- The Issue #17 multi-strategy exploration keeps the total comparison capital at 30,000 yuan. Its candidate families use a 15,000-yuan long-only tactical sleeve to match the approved 50% cash capacity; its frequency-isolation rows retain the earlier 7,500-yuan layer so that only the daily round-trip cap changes.
+- Reusing the 30-day sample is permitted for finite, explicitly logged hypothesis generation and for answering sensitivity questions. It is not permitted to search indefinitely, discard failed trials, call the best row validated, or use the reused sample to advance G4-G8.
+- A strategy combination in Issue #17 means a declared instrument, anchor or proxy, causal rule and parameter set. It does not mean that multiple rows can be added together as a simultaneously executable portfolio without a separate capital-allocation and overlap simulation.
 - Total portfolio equity will equal cash plus inventory marked at a conservative executable liquidation price, less accrued costs.
 - Completed-grid profit will never be reported without unrealized inventory profit or loss and total capital usage.
 - The first 30 trading days will be used only for data acceptance, recent-volatility description, cost coverage and hypothesis generation.
 - Formal validation will target all available history, preferably at least approximately 12 months, and reserve the last 60 trading days as a final untouched holdout.
 - Effective strategy freedom will be limited to approximately four principal choices: anchor, entry/exit deviation, per-layer size and maximum inventory layers. Risk settings will be frozen rather than optimized wherever possible.
 - Every examined anchor and parameter family will be logged to expose multiple testing.
+- Exploratory positive rows will be separated from priority hypotheses. A priority label still requires positive baseline and stress tactical P&L in both reused chronological descriptions, carries a small-sample warning below 30 paths, and never substitutes for the final 60-day holdout.
 - Evaluation baselines will include no trading, passive ETF holding, a simple fixed rule and a random-timing strategy with comparable turnover.
 - Performance reporting will include net return, daily Sharpe ratio, maximum drawdown, worst day, turnover, cost as a percentage of gross profit, profit factor, partial-fill rate, maximum inventory, forced-exit share and active trading days.
 - Reports will show zero-cost, baseline-cost and stress-cost scenarios. Only baseline and stress results may support a Go decision.
