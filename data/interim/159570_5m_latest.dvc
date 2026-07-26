@@ -1,0 +1,6 @@
+outs:
+- md5: 51b815a67d5fa8a03653a7e78ff40a8b.dir
+  size: 123904
+  nfiles: 1
+  hash: md5
+  path: 159570_5m_latest

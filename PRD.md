@@ -1,8 +1,8 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.2
-- 更新日期：2026-07-25
-- 项目阶段：方案已完成初步 review，尚未开始数据采集与策略实施
+- 文档状态：Draft v0.3
+- 更新日期：2026-07-26
+- 项目阶段：首批多标的 5 分钟数据采集和探索性网格筛选已实施；执行数据与正式策略验证仍未开始
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
 ## Problem Statement
@@ -28,7 +28,7 @@
 建设一个面向人工交易的港股 ETF T+0 研究系统，按以下顺序推进：
 
 1. 建立支持当日回转交易的港股及跨境 ETF 证据台账。
-2. 以 159567 为首个基准标的，按流动性、买卖价差、波动、基金规模、折溢价和数据质量筛选候选标的。
+2. 以 159567 验证单标的采集方法，再扩展到有交易所证据的多标的首批研究池；159567 不被预设为最终交易标的。
 3. 默认采用免费数据路径，先取得最近 30 个完整交易日的原生 5 分钟 OHLCV，并实测免费 1 分钟数据的可回溯范围。
 4. 若免费 1 分钟历史不足，则从项目启动日起持续积累 1 分钟数据和实时盘口快照；不得将 5 分钟数据伪造上采样为 1 分钟数据。
 5. 显式对齐内地、香港、港股通及基金申赎日历，区分正常重合日与错位交易日。
@@ -106,8 +106,8 @@
 ## Implementation Decisions
 
 - The product is a research and decision-support system. It will not connect to a broker for order submission, cancellation or account control.
-- The initial benchmark instrument is 159567. The universe will later include other Hong Kong, Hong Kong Stock Connect and cross-border ETFs only when an exchange announcement explicitly confirms same-day turnaround trading.
-- Every universe entry will include an exchange-issued announcement URL, announcement date, last review date, current security status, legal fund name, trading code, manager and tracked index. An original exchange or manager URL is preferred; when only an exchange-issued mirrored copy is accessible, the ledger must record its content SHA-256 fingerprint, issuer, exact T+0 quote and why the original URL was unavailable.
+- The initial collection template is 159567, but it is not a preferred or final trading instrument. The first multi-symbol research batch contains 16 evidence-backed Hong Kong or Hong Kong Stock Connect equity ETFs across SZSE and SSE; future expansion remains fail-closed on exchange evidence and current listing status.
+- Every universe entry will include an exchange-issued announcement URL or a current exchange official-list designation, evidence date, last review date, current security status, legal fund name, trading code, manager and tracked index. An original exchange URL is preferred; when only an exchange-issued mirrored copy is accessible, the ledger must record its content SHA-256 fingerprint, issuer, exact T+0 quote and why the original URL was unavailable.
 - The universe service, market-data adapter, calendar service, fee engine, portfolio ledger, execution simulator, analysis engine and reporting layer will be separate modules.
 - External data providers will be isolated behind adapters because free endpoints, field names and retention periods can change.
 - The initial free-data path will prioritize native 5-minute OHLCV for the latest 30 complete trading days.
@@ -138,6 +138,7 @@
 - Overnight base inventory is permitted.
 - The initial research baseline will allocate 50% of the 10,000-yuan capital to base inventory and retain 50% as cash. This is a research baseline, not a live allocation recommendation.
 - The user-requested 30,000-yuan, maximum-20-round-trips-per-day calculation is a separate 30-day cost pressure scenario for Issue #8. It does not replace the frozen 10,000-yuan, 50% inventory / 50% cash research baseline, does not qualify as an execution backtest, and cannot support a strategy Go decision.
+- The first cross-sectional grid screen standardizes total capital at 30,000 yuan and limits the tactical comparison layer to 25% of total capital. This is an exploratory cross-symbol comparison requested by the user, not a PRD allocation change, live position recommendation or replacement for the 10,000-yuan baseline.
 - Total portfolio equity will equal cash plus inventory marked at a conservative executable liquidation price, less accrued costs.
 - Completed-grid profit will never be reported without unrealized inventory profit or loss and total capital usage.
 - The first 30 trading days will be used only for data acceptance, recent-volatility description, cost coverage and hypothesis generation.

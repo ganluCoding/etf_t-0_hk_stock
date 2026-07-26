@@ -1,8 +1,9 @@
 from datetime import datetime
 
 import pandas as pd
+import pytest
 
-from etf_t0.data_pilot import EXPECTED_CORE_TIMES, quality_summary
+from etf_t0.data_pilot import EXPECTED_CORE_TIMES, eastmoney_secid, quality_summary
 
 
 def test_expected_core_session_has_48_five_minute_bar_ends() -> None:
@@ -11,6 +12,24 @@ def test_expected_core_session_has_48_five_minute_bar_ends() -> None:
     assert "11:30" in EXPECTED_CORE_TIMES
     assert "13:05" in EXPECTED_CORE_TIMES
     assert "15:00" in EXPECTED_CORE_TIMES
+
+
+def test_eastmoney_market_identifier_supports_both_etf_exchanges() -> None:
+    assert eastmoney_secid("159567") == "0.159567"
+    assert eastmoney_secid("513120") == "1.513120"
+    assert eastmoney_secid("159567", "SZSE") == "0.159567"
+    assert eastmoney_secid("513120", "SSE") == "1.513120"
+
+
+def test_eastmoney_market_identifier_fails_closed_for_ambiguous_code() -> None:
+    with pytest.raises(ValueError, match="cannot infer"):
+        eastmoney_secid("000001")
+    with pytest.raises(ValueError, match="exchange"):
+        eastmoney_secid("159567", "HKEX")
+    with pytest.raises(ValueError, match="conflicts"):
+        eastmoney_secid("159567", "SSE")
+    with pytest.raises(ValueError, match="conflicts"):
+        eastmoney_secid("513120", "SZSE")
 
 
 def test_quality_summary_reports_a_complete_session_and_missing_bar() -> None:

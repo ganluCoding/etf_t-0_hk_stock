@@ -1,0 +1,6 @@
+outs:
+- md5: 7127f84daeb3297888e6548cbc84a9f4.dir
+  size: 123210
+  nfiles: 1
+  hash: md5
+  path: 159792_5m_latest
