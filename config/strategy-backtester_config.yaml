@@ -1,0 +1,175 @@
+{
+  "research_id": "issue_17_multi_strategy_5m_exploration_v1",
+  "capital_cny": 30000,
+  "default_tactical_capital_cny": 15000,
+  "window_complete_days": 30,
+  "descriptive_split_days": [20, 10],
+  "cost_scenarios": [
+    {
+      "name": "zero_cost",
+      "commission_per_side_cny": 0.0,
+      "adverse_ticks_round_trip": 0.0
+    },
+    {
+      "name": "provisional_baseline_5_per_side_plus_1_tick",
+      "commission_per_side_cny": 5.0,
+      "adverse_ticks_round_trip": 1.0
+    },
+    {
+      "name": "provisional_stress_5_per_side_plus_2_ticks",
+      "commission_per_side_cny": 5.0,
+      "adverse_ticks_round_trip": 2.0
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "FREQ_EMA12_MAX1",
+      "family": "ema_cost_gated_reversion",
+      "purpose": "frequency_sensitivity",
+      "tactical_capital_cny": 7500,
+      "ema_span": 12,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "FREQ_EMA12_MAX2",
+      "family": "ema_cost_gated_reversion",
+      "purpose": "frequency_sensitivity",
+      "tactical_capital_cny": 7500,
+      "ema_span": 12,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 2
+    },
+    {
+      "id": "FREQ_EMA12_MAX4",
+      "family": "ema_cost_gated_reversion",
+      "purpose": "frequency_sensitivity",
+      "tactical_capital_cny": 7500,
+      "ema_span": 12,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 4
+    },
+    {
+      "id": "MR_EMA6_MAX1",
+      "family": "ema_cost_gated_reversion",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "ema_span": 6,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "MR_EMA12_MAX1",
+      "family": "ema_cost_gated_reversion",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "ema_span": 12,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "MR_EMA12_MAX2",
+      "family": "ema_cost_gated_reversion",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "ema_span": 12,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 2
+    },
+    {
+      "id": "TREND_PULLBACK_H6_MAX1",
+      "family": "trend_filtered_pullback",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "fast_ema_span": 6,
+      "slow_ema_span": 18,
+      "slow_slope_bars": 3,
+      "maximum_holding_bars": 6,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "TREND_PULLBACK_H12_MAX1",
+      "family": "trend_filtered_pullback",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "fast_ema_span": 6,
+      "slow_ema_span": 18,
+      "slow_slope_bars": 3,
+      "maximum_holding_bars": 12,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "OPENING_BREAKOUT_OR6_H6_MAX1",
+      "family": "opening_range_breakout",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "opening_range_bars": 6,
+      "exit_ema_span": 6,
+      "maximum_holding_bars": 6,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "OPENING_BREAKOUT_OR6_H12_MAX1",
+      "family": "opening_range_breakout",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "opening_range_bars": 6,
+      "exit_ema_span": 6,
+      "maximum_holding_bars": 12,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "HIGH_VOL_MR_EMA12_MAX1",
+      "family": "prior_day_volatility_filtered_reversion",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "ema_span": 12,
+      "prior_day_lookback": 5,
+      "prior_day_range_quantile": 0.6,
+      "safety_ticks": 1,
+      "max_round_trips_per_day": 1
+    },
+    {
+      "id": "PROXY_RESIDUAL_L24_Z125_H6_MAX1",
+      "family": "proxy_residual_reversion",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "residual_lookback_bars": 24,
+      "entry_z": 1.25,
+      "exit_z": -0.25,
+      "maximum_holding_bars": 6,
+      "max_round_trips_per_day": 1,
+      "pairs": [
+        ["159920", "513660"],
+        ["513660", "159920"],
+        ["159792", "513330"],
+        ["513330", "159792"],
+        ["159570", "513780"],
+        ["513780", "159570"]
+      ]
+    },
+    {
+      "id": "PROXY_RESIDUAL_L48_Z150_H12_MAX1",
+      "family": "proxy_residual_reversion",
+      "purpose": "strategy_candidate",
+      "tactical_capital_cny": 15000,
+      "residual_lookback_bars": 48,
+      "entry_z": 1.5,
+      "exit_z": -0.25,
+      "maximum_holding_bars": 12,
+      "max_round_trips_per_day": 1,
+      "pairs": [
+        ["159920", "513660"],
+        ["513660", "159920"],
+        ["159792", "513330"],
+        ["513330", "159792"],
+        ["159570", "513780"],
+        ["513780", "159570"]
+      ]
+    }
+  ]
+}
