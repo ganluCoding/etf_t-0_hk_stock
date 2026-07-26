@@ -10,6 +10,7 @@
 - [临时费用模型](docs/FEE_MODEL.md)
 - [数据版本规则](docs/DATA_VERSIONING.md)
 - [多策略与低频探索报告](reports/t0_etf_multi_strategy_exploration.md)
+- [159570/513780 前向采集手册](docs/FORWARD_COLLECTION.md)
 - [架构决策记录](docs/adr/)
 - [GitHub Issues](https://github.com/ganluCoding/etf_t-0_hk_stock/issues)
 
@@ -26,6 +27,8 @@
 uv sync --all-groups
 uv run pytest
 PYTHONPATH=src uv run python -m etf_t0.multi_strategy
+# 仅用于非交易时段的 stale 链路探测，不产生有效样本
+PYTHONPATH=src uv run python -m etf_t0.forward_collection --allow-outside-session
 ```
 
 数据文件保留在本机，具体规则见 `docs/DATA_VERSIONING.md`。不要将券商交割单、API 密钥或原始行情直接提交到 Git。
