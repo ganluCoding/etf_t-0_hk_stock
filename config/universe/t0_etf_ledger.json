@@ -6,7 +6,7 @@
       "code": "159567",
       "exchange": "SZSE",
       "fund_name": "银华国证港股通创新药交易型开放式指数证券投资基金",
-      "trading_name": "港股创新药ETF",
+      "trading_name": "港股创新药ETF银华",
       "manager": "银华基金管理股份有限公司",
       "tracked_index": "国证港股通创新药指数",
       "listing_date": "2024-01-11",
@@ -23,6 +23,321 @@
         "source_content_sha256": "663f5de2093947bfc5207d659947dc89918f9bcc758390bec9dea88fffaf407b"
       },
       "notes": "This confirms secondary-market same-day turnaround eligibility only. It does not confirm broker availability, current suspension status, creation/redemption availability, fee treatment, liquidity, or strategy suitability."
+    },
+    {
+      "code": "159920",
+      "exchange": "SZSE",
+      "fund_name": "恒生交易型开放式指数证券投资基金",
+      "trading_name": "恒生ETF华夏",
+      "manager": "华夏基金管理有限公司",
+      "tracked_index": "恒生指数",
+      "listing_date": "2012-10-22",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/general/t20150109_501348.html",
+        "announcement_date": "2015-01-09",
+        "same_day_turnaround_quote": "截至本通知发布之日，深市可实施当日回转交易的跨境交易型开放式基金和跨境上市开放式基金名单如下：1 | 159920 | 恒生ETF。",
+        "source_access_note": "First-party SZSE rule notice and attached instrument list; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159850",
+      "exchange": "SZSE",
+      "fund_name": "华夏恒生中国企业交易型开放式指数证券投资基金（QDII）",
+      "trading_name": "恒生国企ETF华夏",
+      "manager": "华夏基金管理有限公司",
+      "tracked_index": "恒生中国企业指数",
+      "listing_date": "2021-02-19",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/t20210209_584730.html",
+        "announcement_date": "2021-02-09",
+        "same_day_turnaround_quote": "华夏恒生中国企业交易型开放式指数证券投资基金（QDII）（场内简称：H股50，证券代码：159850）2021年2月19日开始在我所上市交易并开通申购赎回，并实施当日回转交易。",
+        "source_access_note": "First-party SZSE listing notice; the trading name was later changed. Reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159792",
+      "exchange": "SZSE",
+      "fund_name": "富国中证港股通互联网交易型开放式指数证券投资基金",
+      "trading_name": "港股通互联网ETF富国",
+      "manager": "富国基金管理有限公司",
+      "tracked_index": "中证港股通互联网指数",
+      "listing_date": "2021-09-28",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/t20210923_588528.html",
+        "announcement_date": "2021-09-17",
+        "same_day_turnaround_quote": "富国中证港股通互联网交易型开放式指数证券投资基金自2021年9月28日起在本所上市交易，并实施当日回转交易，证券代码为“159792”。",
+        "source_access_note": "First-party SZSE listing notice; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159570",
+      "exchange": "SZSE",
+      "fund_name": "汇添富国证港股通创新药交易型开放式指数证券投资基金",
+      "trading_name": "港股通创新药ETF汇添富",
+      "manager": "汇添富基金管理股份有限公司",
+      "tracked_index": "国证港股通创新药指数",
+      "listing_date": "2024-01-22",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/fund/t20240117_605654.html",
+        "announcement_date": "2024-01-17",
+        "same_day_turnaround_quote": "汇添富国证港股通创新药交易型开放式指数证券投资基金（证券简称：港股通创新药ETF，证券代码：159570）自2024年1月22日起在本所上市交易，并实施当日回转交易。",
+        "source_access_note": "First-party SZSE listing notice; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159126",
+      "exchange": "SZSE",
+      "fund_name": "南方中证港股通50交易型开放式指数证券投资基金",
+      "trading_name": "港股通50ETF南方",
+      "manager": "南方基金管理股份有限公司",
+      "tracked_index": "中证港股通50指数",
+      "listing_date": "2025-11-03",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/t20251029_616786.html",
+        "announcement_date": "2025-10-27",
+        "same_day_turnaround_quote": "南方中证港股通50交易型开放式指数证券投资基金（证券简称：港股通50ETF南方，证券代码：159126）自2025年11月3日起在本所上市交易，并实施当日回转交易。",
+        "source_access_note": "First-party SZSE listing notice; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159132",
+      "exchange": "SZSE",
+      "fund_name": "富国恒生生物科技交易型开放式指数证券投资基金",
+      "trading_name": "恒生生物科技ETF富国",
+      "manager": "富国基金管理有限公司",
+      "tracked_index": "恒生生物科技指数",
+      "listing_date": "2026-01-08",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/t20260105_618247.html",
+        "announcement_date": "2025-12-30",
+        "same_day_turnaround_quote": "富国恒生生物科技交易型开放式指数证券投资基金（证券简称：恒生生物科技ETF富国，证券代码：159132）自2026年1月8日起在本所上市交易，并实施当日回转交易。",
+        "source_access_note": "First-party SZSE listing notice; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159010",
+      "exchange": "SZSE",
+      "fund_name": "博时恒生港股通科技主题交易型开放式指数证券投资基金",
+      "trading_name": "港股通科技ETF博时",
+      "manager": "博时基金管理有限公司",
+      "tracked_index": "恒生港股通科技主题指数",
+      "listing_date": "2026-05-13",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/t20260508_620409.html",
+        "announcement_date": "2026-05-06",
+        "same_day_turnaround_quote": "博时恒生港股通科技主题交易型开放式指数证券投资基金（证券简称：港股通科技ETF博时，证券代码：159010）自2026年5月13日起在本所上市交易，并实施当日回转交易。",
+        "source_access_note": "First-party SZSE listing notice; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159185",
+      "exchange": "SZSE",
+      "fund_name": "鹏华中证港股通信息技术综合交易型开放式指数证券投资基金",
+      "trading_name": "港股通信息技术ETF鹏华",
+      "manager": "鹏华基金管理有限公司",
+      "tracked_index": "中证港股通信息技术综合指数",
+      "listing_date": "2026-04-24",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/fund/t20260421_620087.html",
+        "announcement_date": "2026-04-17",
+        "same_day_turnaround_quote": "鹏华中证港股通信息技术综合交易型开放式指数证券投资基金（证券简称：港股通信息技术ETF鹏华，证券代码：159185）自2026年4月24日起在本所上市交易，并实施当日回转交易。",
+        "source_access_note": "First-party SZSE listing notice; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
+    },
+    {
+      "code": "159091",
+      "exchange": "SZSE",
+      "fund_name": "易方达中证港股通内地金融交易型开放式指数证券投资基金",
+      "trading_name": "港股通金融ETF易方达",
+      "manager": "易方达基金管理有限公司",
+      "tracked_index": "中证港股通内地金融指数",
+      "listing_date": "2026-07-16",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "深圳证券交易所",
+        "source_document_url": "https://www.szse.cn/disclosure/notice/t20260713_621618.html",
+        "announcement_date": "2026-07-09",
+        "same_day_turnaround_quote": "易方达中证港股通内地金融交易型开放式指数证券投资基金（证券简称：港股通金融ETF易方达，证券代码：159091）自2026年7月16日起在本所上市交易，并实施当日回转交易。",
+        "source_access_note": "First-party SZSE listing notice; reviewed 2026-07-26. The fund cannot yet satisfy a 30-session history gate.",
+        "source_kind": "first_party"
+      },
+      "notes": "Recently listed; expected to fail the 30-complete-session data gate until enough history accumulates."
+    },
+    {
+      "code": "510900",
+      "exchange": "SSE",
+      "fund_name": "易方达恒生中国企业交易型开放式指数证券投资基金",
+      "trading_name": "恒生中国企业ETF易方达",
+      "manager": "易方达基金管理有限公司",
+      "tracked_index": "恒生中国企业指数",
+      "listing_date": "2012-10-22",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "上海证券交易所",
+        "source_document_url": "https://etf.sse.com.cn/fundlist/",
+        "announcement_date": "2026-07-24",
+        "same_day_turnaround_quote": "上交所官方基金列表“当日回转交易基金”筛选结果包含证券代码510900（恒生中国企业ETF易方达）。",
+        "source_access_note": "First-party current SSE fund list, queried as cross-border ETF plus 当日回转交易基金 and reviewed 2026-07-26; listing date cross-checked against the SSE product disclosure.",
+        "source_kind": "first_party"
+      },
+      "notes": "A current official-list designation is used because the original listing notice predates the current announcement format."
+    },
+    {
+      "code": "513660",
+      "exchange": "SSE",
+      "fund_name": "华夏沪港通恒生交易型开放式指数证券投资基金",
+      "trading_name": "恒生ETF华夏",
+      "manager": "华夏基金管理有限公司",
+      "tracked_index": "恒生指数",
+      "listing_date": "2015-01-26",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "上海证券交易所",
+        "source_document_url": "https://etf.sse.com.cn/fundlist/",
+        "announcement_date": "2026-07-24",
+        "same_day_turnaround_quote": "上交所官方基金列表“当日回转交易基金”筛选结果包含证券代码513660（恒生ETF华夏）。",
+        "source_access_note": "First-party current SSE fund list, queried as cross-border ETF plus 当日回转交易基金 and reviewed 2026-07-26; listing date cross-checked against the SSE product disclosure.",
+        "source_kind": "first_party"
+      },
+      "notes": "Current official-list eligibility is distinct from broker availability and strategy suitability."
+    },
+    {
+      "code": "513180",
+      "exchange": "SSE",
+      "fund_name": "华夏恒生科技交易型开放式指数证券投资基金（QDII）",
+      "trading_name": "恒生科技ETF华夏",
+      "manager": "华夏基金管理有限公司",
+      "tracked_index": "恒生科技指数",
+      "listing_date": "2021-05-25",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "上海证券交易所",
+        "source_document_url": "https://etf.sse.com.cn/fundlist/",
+        "announcement_date": "2026-07-24",
+        "same_day_turnaround_quote": "上交所官方基金列表“当日回转交易基金”筛选结果包含证券代码513180（恒生科技ETF华夏）。",
+        "source_access_note": "First-party current SSE fund list, queried as cross-border ETF plus 当日回转交易基金 and reviewed 2026-07-26; listing date cross-checked against the SSE product page.",
+        "source_kind": "first_party"
+      },
+      "notes": "Current official-list eligibility is distinct from broker availability and strategy suitability."
+    },
+    {
+      "code": "513330",
+      "exchange": "SSE",
+      "fund_name": "华夏恒生互联网科技业交易型开放式指数证券投资基金（QDII）",
+      "trading_name": "恒生互联网ETF华夏",
+      "manager": "华夏基金管理有限公司",
+      "tracked_index": "恒生互联网科技业指数",
+      "listing_date": "2021-02-08",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "上海证券交易所",
+        "source_document_url": "https://etf.sse.com.cn/fundlist/",
+        "announcement_date": "2026-07-24",
+        "same_day_turnaround_quote": "上交所官方基金列表“当日回转交易基金”筛选结果包含证券代码513330（恒生互联网ETF华夏）。",
+        "source_access_note": "First-party current SSE fund list, queried as cross-border ETF plus 当日回转交易基金 and reviewed 2026-07-26; listing date cross-checked against the SSE listing disclosure.",
+        "source_kind": "first_party"
+      },
+      "notes": "Current official-list eligibility is distinct from broker availability and strategy suitability."
+    },
+    {
+      "code": "513550",
+      "exchange": "SSE",
+      "fund_name": "华泰柏瑞中证港股通50交易型开放式指数证券投资基金",
+      "trading_name": "港股通50ETF华泰柏瑞",
+      "manager": "华泰柏瑞基金管理有限公司",
+      "tracked_index": "中证港股通50指数",
+      "listing_date": "2021-01-13",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "上海证券交易所",
+        "source_document_url": "https://etf.sse.com.cn/fundlist/",
+        "announcement_date": "2026-07-24",
+        "same_day_turnaround_quote": "上交所官方基金列表“当日回转交易基金”筛选结果包含证券代码513550（港股通50ETF华泰柏瑞）。",
+        "source_access_note": "First-party current SSE fund list, queried as cross-border ETF plus 当日回转交易基金 and reviewed 2026-07-26; listing date cross-checked against the SSE listing disclosure.",
+        "source_kind": "first_party"
+      },
+      "notes": "Current official-list eligibility is distinct from broker availability and strategy suitability."
+    },
+    {
+      "code": "513780",
+      "exchange": "SSE",
+      "fund_name": "景顺长城中证港股通创新药交易型开放式指数证券投资基金",
+      "trading_name": "港股创新药ETF景顺",
+      "manager": "景顺长城基金管理有限公司",
+      "tracked_index": "中证港股通创新药指数",
+      "listing_date": "2024-10-25",
+      "status": "confirmed",
+      "last_review_date": "2026-07-26",
+      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "evidence": {
+        "issuer": "上海证券交易所",
+        "source_document_url": "https://www.sse.com.cn/disclosure/announcement/listing/c/c_20241024_10763287.shtml",
+        "announcement_date": "2024-10-25",
+        "same_day_turnaround_quote": "景顺长城中证港股通创新药交易型开放式指数证券投资基金（证券代码：513780）于2024年10月25日起在本所市场上市交易及申购、赎回，并实施日内回转交易。",
+        "source_access_note": "First-party SSE listing announcement; reviewed 2026-07-26.",
+        "source_kind": "first_party"
+      },
+      "notes": "Eligibility and current quote presence do not establish broker availability or grid suitability."
     }
   ]
 }

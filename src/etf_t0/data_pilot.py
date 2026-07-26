@@ -44,19 +44,22 @@ def _fetch_eastmoney_payload(
     url: str,
     symbol: str,
     params: dict[str, str],
+    exchange: str | None = None,
     get: Callable[..., Any] = requests.get,
 ) -> dict[str, Any]:
     """Fetch a public Eastmoney response with bounded, observable retries."""
 
     if len(symbol) != 6 or not symbol.isdigit():
         raise ValueError("symbol must be a six-digit ETF code")
+    normalized_exchange = _normalize_exchange(symbol, exchange)
+    quote_prefix = "sh" if normalized_exchange == "SSE" else "sz"
     last_error: Exception | None = None
     for attempt in range(3):
         try:
             response = get(
                 url,
                 params=params,
-                headers={"Referer": f"https://quote.eastmoney.com/sz{symbol}.html"},
+                headers={"Referer": f"https://quote.eastmoney.com/{quote_prefix}{symbol}.html"},
                 impersonate="chrome",
                 timeout=30,
             )
@@ -75,8 +78,40 @@ def _fetch_eastmoney_payload(
     return payload
 
 
+def _normalize_exchange(symbol: str, exchange: str | None = None) -> str:
+    """Return the exchange used by Eastmoney; fail closed on ambiguous inputs."""
+
+    if len(symbol) != 6 or not symbol.isdigit():
+        raise ValueError("symbol must be a six-digit ETF code")
+    if exchange is not None:
+        normalized = exchange.upper()
+        if normalized not in {"SSE", "SZSE"}:
+            raise ValueError("exchange must be SSE or SZSE")
+        if (symbol.startswith("5") and normalized != "SSE") or (
+            symbol.startswith("1") and normalized != "SZSE"
+        ):
+            raise ValueError("ETF symbol prefix conflicts with the explicit exchange")
+        return normalized
+    if symbol.startswith("5"):
+        return "SSE"
+    if symbol.startswith("1"):
+        return "SZSE"
+    raise ValueError("cannot infer ETF exchange from symbol; pass exchange explicitly")
+
+
+def eastmoney_secid(symbol: str, exchange: str | None = None) -> str:
+    """Map an exchange-qualified ETF code to Eastmoney's market identifier."""
+
+    normalized_exchange = _normalize_exchange(symbol, exchange)
+    market = "1" if normalized_exchange == "SSE" else "0"
+    return f"{market}.{symbol}"
+
+
 def fetch_eastmoney_etf_5m(
-    symbol: str, get: Callable[..., Any] = requests.get
+    symbol: str,
+    get: Callable[..., Any] = requests.get,
+    *,
+    exchange: str | None = None,
 ) -> dict[str, Any]:
     """Fetch native 5-minute bars without provider-side price adjustment."""
 
@@ -86,18 +121,23 @@ def fetch_eastmoney_etf_5m(
         "ut": "7eea3edcaed734bea9cbfc24409ed989",
         "klt": "5",
         "fqt": "0",
-        "secid": f"0.{symbol}",
+        "secid": eastmoney_secid(symbol, exchange),
         "beg": "0",
         "end": "20500000",
     }
-    payload = _fetch_eastmoney_payload(EASTMONEY_KLINE_URL, symbol, params, get)
+    payload = _fetch_eastmoney_payload(
+        EASTMONEY_KLINE_URL, symbol, params, exchange=exchange, get=get
+    )
     if not payload.get("data", {}).get("klines"):
         raise ValueError("provider returned no 5-minute kline data")
     return payload
 
 
 def fetch_eastmoney_etf_1m(
-    symbol: str, get: Callable[..., Any] = requests.get
+    symbol: str,
+    get: Callable[..., Any] = requests.get,
+    *,
+    exchange: str | None = None,
 ) -> dict[str, Any]:
     """Fetch the provider's currently available native 1-minute probe window."""
 
@@ -107,9 +147,11 @@ def fetch_eastmoney_etf_1m(
         "ut": "7eea3edcaed734bea9cbfc24409ed989",
         "ndays": "5",
         "iscr": "0",
-        "secid": f"0.{symbol}",
+        "secid": eastmoney_secid(symbol, exchange),
     }
-    payload = _fetch_eastmoney_payload(EASTMONEY_TRENDS_URL, symbol, params, get)
+    payload = _fetch_eastmoney_payload(
+        EASTMONEY_TRENDS_URL, symbol, params, exchange=exchange, get=get
+    )
     if not payload.get("data", {}).get("trends"):
         raise ValueError("provider returned no 1-minute trend data")
     return payload
@@ -237,38 +279,34 @@ def one_minute_probe_summary(frame: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def run_pilot(symbol: str, workspace: Path) -> dict[str, Any]:
+def run_pilot(
+    symbol: str,
+    workspace: Path,
+    *,
+    exchange: str | None = None,
+    include_one_minute_probe: bool = True,
+) -> dict[str, Any]:
     """Fetch once, retain raw/normalized local files, and return a JSON-safe manifest."""
 
     acquired_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    payload = fetch_eastmoney_etf_5m(symbol)
+    normalized_exchange = _normalize_exchange(symbol, exchange)
+    payload = fetch_eastmoney_etf_5m(symbol, exchange=normalized_exchange)
     frame = normalize_klines(payload)
     summary = quality_summary(frame)
-    probe_payload = fetch_eastmoney_etf_1m(symbol)
-    probe_frame = normalize_trends(probe_payload)
-    probe_summary = one_minute_probe_summary(probe_frame)
     local_name = f"{symbol}_5m_latest"
-    probe_name = f"{symbol}_1m_probe"
     raw_dir = workspace / "data" / "raw" / local_name
     interim_dir = workspace / "data" / "interim" / local_name
-    probe_raw_dir = workspace / "data" / "raw" / probe_name
-    probe_interim_dir = workspace / "data" / "interim" / probe_name
     report_dir = workspace / "reports" / "generated" / "data_pilots"
-    for directory in (raw_dir, interim_dir, probe_raw_dir, probe_interim_dir, report_dir):
+    for directory in (raw_dir, interim_dir, report_dir):
         directory.mkdir(parents=True, exist_ok=True)
     raw_path = raw_dir / "eastmoney_response.json"
     normalized_path = interim_dir / "bars.csv"
-    probe_raw_path = probe_raw_dir / "eastmoney_response.json"
-    probe_normalized_path = probe_interim_dir / "bars.csv"
     report_path = report_dir / f"{symbol}_5m_quality.json"
     raw_path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     frame.to_csv(normalized_path, index=False)
-    probe_raw_path.write_text(
-        json.dumps(probe_payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
-    )
-    probe_frame.to_csv(probe_normalized_path, index=False)
     manifest = {
         "symbol": symbol,
+        "exchange": normalized_exchange,
         "source": "Direct Eastmoney public endpoint; field definitions compatible with AKShare ETF interfaces",
         "source_url": EASTMONEY_KLINE_URL,
         "acquired_at": acquired_at,
@@ -277,19 +315,35 @@ def run_pilot(symbol: str, workspace: Path) -> dict[str, Any]:
         "raw_path": str(raw_path.relative_to(workspace)),
         "normalized_path": str(normalized_path.relative_to(workspace)),
         "quality": summary,
-        "one_minute_probe": {
-            "source_url": EASTMONEY_TRENDS_URL,
-            "raw_path": str(probe_raw_path.relative_to(workspace)),
-            "normalized_path": str(probe_normalized_path.relative_to(workspace)),
-            "quality": probe_summary,
-            "note": "Provider retention observed in this run; this is a reproducible probe, not a 30-day 1-minute dataset.",
-        },
         "acceptance": {
             "target_complete_trading_days": 30,
             "meets_30_day_target": summary["complete_core_days"] >= 30,
             "note": "A false result indicates source coverage is insufficient; it is not filled by resampling or interpolation.",
         },
     }
+    if include_one_minute_probe:
+        probe_payload = fetch_eastmoney_etf_1m(symbol, exchange=normalized_exchange)
+        probe_frame = normalize_trends(probe_payload)
+        probe_summary = one_minute_probe_summary(probe_frame)
+        probe_name = f"{symbol}_1m_probe"
+        probe_raw_dir = workspace / "data" / "raw" / probe_name
+        probe_interim_dir = workspace / "data" / "interim" / probe_name
+        probe_raw_dir.mkdir(parents=True, exist_ok=True)
+        probe_interim_dir.mkdir(parents=True, exist_ok=True)
+        probe_raw_path = probe_raw_dir / "eastmoney_response.json"
+        probe_normalized_path = probe_interim_dir / "bars.csv"
+        probe_raw_path.write_text(
+            json.dumps(probe_payload, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        probe_frame.to_csv(probe_normalized_path, index=False)
+        manifest["one_minute_probe"] = {
+            "source_url": EASTMONEY_TRENDS_URL,
+            "raw_path": str(probe_raw_path.relative_to(workspace)),
+            "normalized_path": str(probe_normalized_path.relative_to(workspace)),
+            "quality": probe_summary,
+            "note": "Provider retention observed in this run; this is a reproducible probe, not a 30-day 1-minute dataset.",
+        }
     report_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest
 
@@ -297,9 +351,22 @@ def run_pilot(symbol: str, workspace: Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="159567")
+    parser.add_argument("--exchange", choices=("SSE", "SZSE"))
+    parser.add_argument("--skip-one-minute-probe", action="store_true")
     parser.add_argument("--workspace", type=Path, default=Path.cwd())
     args = parser.parse_args()
-    print(json.dumps(run_pilot(args.symbol, args.workspace), ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            run_pilot(
+                args.symbol,
+                args.workspace,
+                exchange=args.exchange,
+                include_one_minute_probe=not args.skip_one_minute_probe,
+            ),
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

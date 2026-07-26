@@ -45,11 +45,21 @@ class T0Evidence:
         if not self.source_document_url.startswith("https://"):
             raise ValueError("T+0 evidence must use an HTTPS source document URL")
         quote = self.same_day_turnaround_quote.replace(" ", "")
-        negative_statements = ("不实施当日回转交易", "未实施当日回转交易")
+        negative_statements = (
+            "不实施当日回转交易",
+            "未实施当日回转交易",
+            "不实施日内回转交易",
+            "未实施日内回转交易",
+        )
         if any(statement in quote for statement in negative_statements):
             raise ValueError("T+0 evidence must not contain a negative 当日回转交易 statement")
-        if "实施当日回转交易" not in quote:
-            raise ValueError("T+0 evidence must explicitly state 实施当日回转交易")
+        positive_statements = (
+            "实施当日回转交易",
+            "实施日内回转交易",
+            "当日回转交易基金",
+        )
+        if not any(statement in quote for statement in positive_statements):
+            raise ValueError("T+0 evidence must explicitly state 当日/日内回转交易")
         if self.source_kind is EvidenceSourceKind.EXCHANGE_ISSUED_MIRROR and (
             self.source_content_sha256 is None
             or not re.fullmatch(r"[0-9a-f]{64}", self.source_content_sha256)
