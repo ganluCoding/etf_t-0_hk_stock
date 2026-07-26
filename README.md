@@ -12,6 +12,7 @@
 - [多策略与低频探索报告](reports/t0_etf_multi_strategy_exploration.md)
 - [159570/513780 前向采集手册](docs/FORWARD_COLLECTION.md)
 - [2026-07-27 159570 人工观察简报](reports/2026-07-27_159570_manual_observation_brief.md)
+- [目标 ETF 单代码桌面观察应用设计](docs/DESKTOP_APP_DESIGN.md)
 - [架构决策记录](docs/adr/)
 - [GitHub Issues](https://github.com/ganluCoding/etf_t-0_hk_stock/issues)
 

@@ -1,8 +1,8 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.5
+- 文档状态：Draft v0.6
 - 更新日期：2026-07-26
-- 项目阶段：首批多标的 5 分钟数据采集、单/多策略假设探索已实施；159570/513780 的前向 1 分钟、盘口与 IOPV 采集器已建立，首个有效前向样本尚未产生
+- 项目阶段：首批多标的 5 分钟数据采集、单/多策略假设探索已实施；159570/513780 的前向 1 分钟、盘口与 IOPV 采集器已建立，首个有效前向样本尚未产生；目标 ETF 单代码桌面观察应用处于设计阶段
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
 ## Problem Statement
@@ -20,6 +20,7 @@
 7. 最近 30 个交易日只覆盖很短的市场状态，不能用于证明策略长期具有正期望。
 8. 内地、香港、港股通和 ETF 申购赎回日历并不完全一致。错位交易日的定价和折溢价行为不能与正常重合交易日混合分析。
 9. 用户将自行操作买卖，因此系统应服务于研究、数据分析和决策支持，不应自动生成或提交真实订单。
+10. 用户只计划观察和交易输入的目标 ETF，不应被要求同时理解、盯盘或交易后台使用的主题、指数或价格代理。
 
 项目需要建立一条可审计、可复现、成本完整且对成交持保守假设的研究流程，先回答“哪些 ETF 值得研究、数据是否可靠、波动能否覆盖真实成本”，再回答“采用何种锚点和网格参数”。
 
@@ -38,6 +39,7 @@
 9. 在获得更长历史和足够成交信息后，研究 IOPV、同指数代理价差、滚动 VWAP、EMA 等候选锚点。
 10. 使用保守的成交模拟、完整的现金与持仓约束以及账户总权益核算进行回测。
 11. 通过样本外验证、成本压力测试和模拟盘后，才允许以最小交易单位进行受控人工实盘验证。
+12. 提供本机桌面观察应用：用户日常只输入目标 ETF 代码，应用读取已保存的本地费用与资金档案，输出目标 ETF 的观察买入上限、观察卖出下限、有效期、成本覆盖和 No-Go 原因。
 
 本项目的最终产物不是自动交易程序，而是：
 
@@ -47,6 +49,7 @@
 - 描述性波动与可交易性报告。
 - 具有明确适用条件和停手机制的研究策略。
 - 供用户人工判断和下单使用的研究结论。
+- 只聚焦目标 ETF、明确区分纸面观察与实盘准入的本机桌面界面。
 
 ## User Stories
 
@@ -109,6 +112,13 @@
 57. As an A 股账户投资者, I want synchronized one-minute bars, bid/ask, IOPV and provider timestamps accumulated from 2026-07-27 onward, so that execution and fair-value assumptions can be tested with point-in-time data.
 58. As an A 股账户投资者, I want stale, weekend and pre-freeze observations retained but excluded from the forward sample, so that a successful request is not confused with valid live-session evidence.
 59. As an A 股账户投资者, I want unavailable depth fields preserved as missing rather than inferred from last price, so that execution-data quality remains fail-visible.
+60. As an A 股账户投资者, I want to enter only the six-digit code of the target T+0 ETF, so that I do not need to operate a proxy instrument.
+61. As an A 股账户投资者, I want capital, commission and conservative execution assumptions saved in a local research profile, so that daily use does not require repeated configuration.
+62. As an A 股账户投资者, I want the screen to show only the target ETF's observation buy ceiling and observation sell floor, each with a calculation time and expiry, so that stale prices cannot be mistaken for current values.
+63. As an A 股账户投资者, I want an optional manual entry-fill price and quantity after I independently trade, so that the sell observation floor can be recalculated from my actual target-ETF fill without connecting the application to a broker.
+64. As an A 股账户投资者, I want any IOPV, same-index, theme or market proxy to remain an internal research input rather than a second order leg, while remaining available in an audit trace, so that the output stays simple without becoming an opaque black box.
+65. As an A 股账户投资者, I want ineligible symbols, stale data, invalid quotes, unavailable anchors, uncovered costs or failed gates required by the requested mode to return No-Go with no reusable price, so that the interface fails closed.
+66. As an A 股账户投资者, I want paper-observation prices visually and semantically separated from controlled-live-validation prices, so that exploratory output is never presented as an approved recommendation.
 
 ## Implementation Decisions
 
@@ -161,6 +171,17 @@
 - Candidate quote eligibility requires a mainland core session, matching provider data date, provider timestamp age no greater than 120 seconds, valid last/bid/ask/IOPV and both instruments in the same capture. This does not prove real-time delivery. Weekend, stale and pre-freeze observations are retained for lineage but excluded from the candidate forward sample.
 - One-minute payload vintages are immutable. Only completed, recent, valid-OHLC bars whose timestamp belongs to the corresponding core session, and which are first observed during that session or its predeclared 11:30–11:37/15:00–15:07 completion window for both instruments, may be candidate paired bars; later backfill is retained but not promoted to point-in-time evidence.
 - Public bid/ask and IOPV snapshots do not establish broker executability. Missing depth, source delivery latency, queueing and partial fills keep G3 blocked and must not be imputed.
+- The desktop application is a local target-ETF observation client. Its primary workflow accepts one target ETF code; it does not ask for a proxy code and does not expose any proxy order, position or trading action.
+- Background anchors may use point-in-time IOPV, the target ETF's own causal history, or an approved internal reference instrument. Every component must remain versioned and auditable, but only the target ETF's prices appear on the primary decision card.
+- The first desktop release will expose a paper-observation mode. Controlled-live-validation wording and state remain disabled until G0–G7 pass; a research price is never silently promoted when a gate fails.
+- Paper observation and controlled live validation use separate gate matrices. Paper mode requires G1, a registered frozen policy, an eligible current snapshot and a conservative cost profile; G0 and project-wide G2–G7 remain visible blockers of live mode but do not hide explicitly labelled paper prices. Live mode requires G0–G7 without exception.
+- A target ETF without a registered, versioned observation policy returns No-Go. The application will not invent a generic EMA or fixed range merely because a code exists in the T+0 universe.
+- Observation prices are nullable, versioned and short-lived. No-Go, expiry, application resume, network recovery or critical input changes clear the displayed values rather than retaining the last valid result.
+- The application will report the causal strategy exit threshold separately from the break-even reference calculated from a planned ask fill or user-reported actual fill. Cost coverage is an entry gate and a P&L status, never a reason to postpone a maximum-hold, end-of-day, stale-data or risk exit while waiting to break even.
+- Production desktop evaluation uses a service-owned trusted clock. Historical replay and tests use a separate interface; the production UI cannot supply or override `as_of` for freshness or expiry decisions.
+- Desktop paper prices are available only during continuous auction windows, initially 09:30–11:30 and 13:00–14:57 Asia/Shanghai. Opening auction, lunch, closing auction and post-close states clear all prices.
+- Every registered observation policy must retain its target, anchor formula, causal bar timing, training window, parameter-search log, freeze time, forward start, code/data hashes, validation status and allowed mode. Any target, anchor or parameter change creates a new policy version and forward start.
+- The recommended first implementation is a Python `PySide6` local desktop client over a small target-observation application service, subject to design review before implementation begins.
 - Evaluation baselines will include no trading, passive ETF holding, a simple fixed rule and a random-timing strategy with comparable turnover.
 - Performance reporting will include net return, daily Sharpe ratio, maximum drawdown, worst day, turnover, cost as a percentage of gross profit, profit factor, partial-fill rate, maximum inventory, forced-exit share and active trading days.
 - Reports will show zero-cost, baseline-cost and stress-cost scenarios. Only baseline and stress results may support a Go decision.
@@ -197,6 +218,10 @@
 - Validation tests will enforce chronological train/validation/holdout separation and prevent the final 60-day holdout from being used for parameter selection.
 - Performance tests will reconcile gross P&L to explicit fees, spread/slippage, net P&L and total-equity change.
 - Risk-control tests will verify daily loss stops, inventory caps, drawdown pauses, spread stops, stale-data stops and prohibition of martingale sizing.
+- Desktop service tests will assert that only an eligible target code is accepted; No-Go, expired and stale-data exit states contain no target quote, observation or break-even prices; both otherwise displayed prices share one snapshot and policy version; and all values use legal tick rounding.
+- Desktop presentation tests will assert that the primary screen contains no proxy trading control, broker action, order shortcut or guaranteed-profit wording, and that paper-observation status remains visible whenever G8 is unavailable.
+- Manual-fill tests will bind a user-entered target fill to its originating decision, validate tick/lot/time/fee fields and recompute break-even status without mutating the original decision snapshot or delaying a mandatory exit.
+- Desktop clock and session tests will prove that UI input cannot override freshness time and that lunch, opening/closing auctions, post-close, resume and network recovery clear prices.
 - Stress tests will rerun the same policy under baseline, 1.5-times and 2-times transaction-cost assumptions.
 - Robustness tests will compare neighboring parameter settings and remove the best five trading days to detect dependence on isolated outcomes.
 - Simulation acceptance will require at least 20 trading days, no cash or inventory violations, and observed execution quality within the modeled range before any live validation.
@@ -216,6 +241,7 @@
 - Tax, legal or personalized regulated investment advice.
 - Portfolio allocation across unrelated asset classes.
 - Mobile application, production web dashboard or automated alert delivery in the first research version.
+- Broker deep links, clipboard order templates, automatic form filling or any feature that turns an observation price into an order instruction.
 - Strategy optimization or live trading before actual broker fees are confirmed.
 - Treating the initial 30-day sample as proof of profitability.
 - Including after-hours fixed-price ETF trading in the initial strategy.
@@ -255,6 +281,7 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - If minute-level history is insufficient, an alternative source will be considered separately.
 - Overnight base inventory is approved.
 - The 50% inventory / 50% cash split is an initial research baseline only and may be changed by an explicit risk decision before formal validation.
+- The target-ETF single-code desktop design is proposed in Issue #24. Toolkit choice, packaging format and the paper-observation display policy require user review before implementation.
 
 ### Primary References
 
