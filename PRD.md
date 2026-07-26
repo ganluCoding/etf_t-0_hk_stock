@@ -1,8 +1,8 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.4
+- 文档状态：Draft v0.5
 - 更新日期：2026-07-26
-- 项目阶段：首批多标的 5 分钟数据采集、单策略网格筛选和有限多策略假设探索已实施；执行数据与正式策略验证仍未开始
+- 项目阶段：首批多标的 5 分钟数据采集、单/多策略假设探索已实施；159570/513780 的前向 1 分钟、盘口与 IOPV 采集器已建立，首个有效前向样本尚未产生
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
 ## Problem Statement
@@ -105,6 +105,10 @@
 53. As an A 股账户投资者, I want the same rule compared at one, two and four maximum daily round trips, so that I can see whether lower frequency improves cost-adjusted results.
 54. As an A 股账户投资者, I want a finite, predeclared set of mean-reversion, trend, breakout, volatility-filter and proxy-residual hypotheses, so that the research is not limited to one EMA rule.
 55. As an A 股账户投资者, I want every tested symbol and parameter combination retained, including failures, so that positive 30-day results are not cherry-picked or presented as validated profitability.
+56. As an A 股账户投资者, I want the selected 159570/513780 hypothesis frozen before forward collection begins, so that future observations are not contaminated by continued tuning.
+57. As an A 股账户投资者, I want synchronized one-minute bars, bid/ask, IOPV and provider timestamps accumulated from 2026-07-27 onward, so that execution and fair-value assumptions can be tested with point-in-time data.
+58. As an A 股账户投资者, I want stale, weekend and pre-freeze observations retained but excluded from the forward sample, so that a successful request is not confused with valid live-session evidence.
+59. As an A 股账户投资者, I want unavailable depth fields preserved as missing rather than inferred from last price, so that execution-data quality remains fail-visible.
 
 ## Implementation Decisions
 
@@ -152,6 +156,11 @@
 - Effective strategy freedom will be limited to approximately four principal choices: anchor, entry/exit deviation, per-layer size and maximum inventory layers. Risk settings will be frozen rather than optimized wherever possible.
 - Every examined anchor and parameter family will be logged to expose multiple testing.
 - Exploratory positive rows will be separated from priority hypotheses. A priority label still requires positive baseline and stress tactical P&L in both reused chronological descriptions, carries a small-sample warning below 30 paths, and never substitutes for the final 60-day holdout.
+- Issue #19 freezes `PROXY_RESIDUAL_L48_Z150_H12_MAX1` before forward observation. The target is 159570, the theme proxy is 513780, and no parameter may change without a new version and a new forward start date.
+- Forward collection v1 begins exactly on 2026-07-27. Its complete strategy definition, source Git commit and source blob are frozen; a change requires a new collection ID and start date. The default public-data capture interval is 15 seconds, depth is probed every 60 seconds and the provider-native one-minute window is synchronized every 300 seconds.
+- Candidate quote eligibility requires a mainland core session, matching provider data date, provider timestamp age no greater than 120 seconds, valid last/bid/ask/IOPV and both instruments in the same capture. This does not prove real-time delivery. Weekend, stale and pre-freeze observations are retained for lineage but excluded from the candidate forward sample.
+- One-minute payload vintages are immutable. Only completed, recent, valid-OHLC bars whose timestamp belongs to the corresponding core session, and which are first observed during that session or its predeclared 11:30–11:37/15:00–15:07 completion window for both instruments, may be candidate paired bars; later backfill is retained but not promoted to point-in-time evidence.
+- Public bid/ask and IOPV snapshots do not establish broker executability. Missing depth, source delivery latency, queueing and partial fills keep G3 blocked and must not be imputed.
 - Evaluation baselines will include no trading, passive ETF holding, a simple fixed rule and a random-timing strategy with comparable turnover.
 - Performance reporting will include net return, daily Sharpe ratio, maximum drawdown, worst day, turnover, cost as a percentage of gross profit, profit factor, partial-fill rate, maximum inventory, forced-exit share and active trading days.
 - Reports will show zero-cost, baseline-cost and stress-cost scenarios. Only baseline and stress results may support a Go decision.

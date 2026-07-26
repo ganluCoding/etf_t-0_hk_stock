@@ -1,0 +1,6 @@
+outs:
+- md5: 6a0d1c5f89d43dd429487b5be65d2a86.dir
+  size: 479907
+  nfiles: 3
+  hash: md5
+  path: forward_capture

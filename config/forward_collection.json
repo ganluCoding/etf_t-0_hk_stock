@@ -1,0 +1,46 @@
+{
+  "collection_id": "issue_19_159570_513780_forward_v1",
+  "frozen_at": "2026-07-26T13:13:00+08:00",
+  "forward_sample_start_date": "2026-07-27",
+  "research_source_git_commit": "23b43d5eec84cddd7e8f848e2418e06d7a8632ad",
+  "strategy_source_blob": "f3dda56a0bb48c47f59e7ff2c38abeb721156879",
+  "timezone": "Asia/Shanghai",
+  "symbols": [
+    {"symbol": "159570", "exchange": "SZSE", "role": "target"},
+    {"symbol": "513780", "exchange": "SSE", "role": "theme_proxy"}
+  ],
+  "quote_interval_seconds": 15,
+  "depth_interval_seconds": 60,
+  "one_minute_sync_interval_seconds": 300,
+  "provider_freshness_limit_seconds": 120,
+  "core_sessions": [["09:30", "11:30"], ["13:00", "15:00"]],
+  "frozen_strategy": {
+    "hypothesis_id": "PROXY_RESIDUAL_L48_Z150_H12_MAX1",
+    "target_symbol": "159570",
+    "proxy_symbol": "513780",
+    "family": "proxy_residual_reversion",
+    "signal_bar_interval_minutes": 5,
+    "signal_price": "close",
+    "residual_formula": "log(target_close/proxy_close)",
+    "rolling_window_scope": "continuous_across_sessions_and_trade_dates",
+    "rolling_std_ddof": 0,
+    "residual_lookback_bars": 48,
+    "entry_z": 1.5,
+    "exit_z": -0.25,
+    "maximum_holding_bars": 12,
+    "max_round_trips_per_day": 1,
+    "entry_rule": "completed_bar_residual_z_lte_minus_entry_z_then_next_bar_open",
+    "exit_rule": "completed_bar_residual_z_gte_exit_z_or_max_hold_then_next_bar_open",
+    "end_of_day_rule": "force_exit_at_last_bar_assumed_open",
+    "position_side": "long_target_only",
+    "total_comparison_capital_cny": 30000,
+    "tactical_capital_cny": 15000,
+    "lot_size_units": 100,
+    "cost_scenarios": [
+      {"name": "zero_cost", "commission_per_side_cny": 0.0, "adverse_ticks_round_trip": 0.0},
+      {"name": "provisional_baseline", "commission_per_side_cny": 5.0, "adverse_ticks_round_trip": 1.0},
+      {"name": "provisional_stress", "commission_per_side_cny": 5.0, "adverse_ticks_round_trip": 2.0}
+    ],
+    "note": "Frozen for forward observation only; not a live trading instruction."
+  }
+}
