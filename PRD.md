@@ -1,8 +1,8 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.6
+- 文档状态：Draft v0.7
 - 更新日期：2026-07-26
-- 项目阶段：首批多标的 5 分钟数据采集、单/多策略假设探索已实施；159570/513780 的前向 1 分钟、盘口与 IOPV 采集器已建立，首个有效前向样本尚未产生；目标 ETF 单代码桌面观察应用处于设计阶段
+- 项目阶段：首批多标的 5 分钟数据采集、单/多策略假设探索已实施；159570/513780 的前向 1 分钟、盘口与 IOPV 采集器已建立，首个有效前向样本尚未产生；目标 ETF 单代码桌面应用 M1 固定夹具原型已实现，尚未接入实时行情
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
 ## Problem Statement
@@ -182,6 +182,7 @@
 - Desktop paper prices are available only during continuous auction windows, initially 09:30–11:30 and 13:00–14:57 Asia/Shanghai. Opening auction, lunch, closing auction and post-close states clear all prices.
 - Every registered observation policy must retain its target, anchor formula, causal bar timing, training window, parameter-search log, freeze time, forward start, code/data hashes, validation status and allowed mode. Any target, anchor or parameter change creates a new policy version and forward start.
 - The recommended first implementation is a Python `PySide6` local desktop client over a small target-observation application service, subject to design review before implementation begins.
+- M1 uses `PySide6 Essentials` and a versioned 159570 fixture with a service-owned, monotonically advancing demo clock. The fixture binds the confirmed T+0 ledger evidence, eligibility review date, legal 0.001 ticks and frozen policy lineage. It validates the target-only UI, provisional cost floor, continuous-session gate, non-replayable expiry clearing and unsupported-symbol No-Go; it must never be described as current market data.
 - Evaluation baselines will include no trading, passive ETF holding, a simple fixed rule and a random-timing strategy with comparable turnover.
 - Performance reporting will include net return, daily Sharpe ratio, maximum drawdown, worst day, turnover, cost as a percentage of gross profit, profit factor, partial-fill rate, maximum inventory, forced-exit share and active trading days.
 - Reports will show zero-cost, baseline-cost and stress-cost scenarios. Only baseline and stress results may support a Go decision.
@@ -282,6 +283,7 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - Overnight base inventory is approved.
 - The 50% inventory / 50% cash split is an initial research baseline only and may be changed by an explicit risk decision before formal validation.
 - The target-ETF single-code desktop design is proposed in Issue #24. Toolkit choice, packaging format and the paper-observation display policy require user review before implementation.
+- Issue #26 implements the approved M1 fixed-fixture prototype. Real quote/IOPV adapters, local settings persistence, user-reported fills, decision journaling and packaging remain M2 or later work.
 
 ### Primary References
 
