@@ -93,9 +93,21 @@ class ResearchWorkbenchService:
                 completed_uptrends=(),
             )
         if not (one_minute_complete or five_minute_complete):
+            data_quality_status = (
+                "WAIT_DATA_QUALITY"
+                if (
+                    _has_complete_time_labels(one_minute_bars, interval_minutes=1)
+                    and not _has_valid_ohlc(one_minute_bars)
+                )
+                or (
+                    _has_complete_time_labels(five_minute_bars, interval_minutes=5)
+                    and not _has_valid_ohlc(five_minute_bars)
+                )
+                else "WAIT_COMPLETE_DAY"
+            )
             return TargetTrendDetail(
                 capability=capability,
-                status="WAIT_COMPLETE_DAY",
+                status=data_quality_status,
                 trade_date=trade_date,
                 interval_minutes=interval_minutes,
                 bars=bars,
@@ -103,18 +115,6 @@ class ResearchWorkbenchService:
             )
         trend_bars = tuple(TrendBar(ended_at=row[0], close=Decimal(row[2])) for row in bars)
         intervals = detect_completed_uptrends(trend_bars, parameters=self._parameters)
-        self._store.store_completed_uptrends(
-            code=code,
-            trade_date=trade_date,
-            interval_minutes=interval_minutes,
-            parameters=self._parameters,
-            input_bar_sha256=self._store.bar_input_fingerprint(
-                code, trade_date, interval_minutes
-            ),
-            input_latest_bar_end=bars[-1][0],
-            calculated_at=calculated_at,
-            intervals=intervals,
-        )
         return TargetTrendDetail(
             capability=capability,
             status="RESEARCH_READY",
@@ -123,6 +123,26 @@ class ResearchWorkbenchService:
             bars=bars,
             completed_uptrends=intervals,
         )
+
+    def persist_completed_trends(self, code: str, *, trade_date: date) -> TargetTrendDetail:
+        """Persist a scheduled calculation; interactive detail reads stay read-only."""
+
+        detail = self.target_detail(code, trade_date=trade_date)
+        if detail.status != "RESEARCH_READY" or detail.interval_minutes is None:
+            return detail
+        self._store.store_completed_uptrends(
+            code=code,
+            trade_date=trade_date,
+            interval_minutes=detail.interval_minutes,
+            parameters=self._parameters,
+            input_bar_sha256=self._store.bar_input_fingerprint(
+                code, trade_date, detail.interval_minutes
+            ),
+            input_latest_bar_end=detail.bars[-1][0],
+            calculated_at=self._clock(),
+            intervals=detail.completed_uptrends,
+        )
+        return detail
 
 
 def load_trend_detection_parameters(path) -> TrendDetectionParameters:
@@ -155,9 +175,26 @@ def _is_completed_core_day(
     It never promotes a partial intraday capture to an end-of-day result.
     """
 
+    if not _has_complete_time_labels(bars, interval_minutes=interval_minutes):
+        return False
+    if not _has_valid_ohlc(bars):
+        return False
+    completed_at = datetime.fromisoformat(calculated_at)
+    if completed_at.date() > trade_date:
+        return True
+    return completed_at.date() == trade_date and completed_at.time() >= time(15, 7)
+
+
+def _has_complete_time_labels(
+    bars: tuple[tuple[str, str, str, str, str], ...], *, interval_minutes: int
+) -> bool:
     expected = EXPECTED_ONE_MINUTE_TIMES if interval_minutes == 1 else EXPECTED_CORE_TIMES
     clocks = [datetime.fromisoformat(row[0]).strftime("%H:%M") for row in bars]
-    if len(clocks) != len(expected) or set(clocks) != expected or len(set(clocks)) != len(clocks):
+    return len(clocks) == len(expected) and set(clocks) == expected and len(set(clocks)) == len(clocks)
+
+
+def _has_valid_ohlc(bars: tuple[tuple[str, str, str, str, str], ...]) -> bool:
+    if not bars:
         return False
     try:
         for _ended_at, open_price, close_price, high_price, low_price in bars:
@@ -170,7 +207,4 @@ def _is_completed_core_day(
                 return False
     except ArithmeticError:
         return False
-    completed_at = datetime.fromisoformat(calculated_at)
-    if completed_at.date() > trade_date:
-        return True
-    return completed_at.date() == trade_date and completed_at.time() >= time(15, 7)
+    return True

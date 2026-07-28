@@ -11,12 +11,15 @@ from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QDateEdit,
     QFrame,
-    QHBoxLayout,
+    QHeaderView,
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -79,6 +82,7 @@ class TrendChart(QWidget):
         painter.setPen(QPen(QColor("#52606d"), 1))
         painter.drawText(8, 26, f"¥{upper:.3f}")
         painter.drawText(8, rect.bottom(), f"¥{lower:.3f}")
+        painter.drawText(rect.left(), 16, "蓝：每分钟收盘价｜绿：收盘后上涨区间（非交易信号）")
         painter.drawText(
             rect.left(), self.height() - 10, self._bars[0][0][11:16] + " — " + self._bars[-1][0][11:16]
         )
@@ -120,20 +124,32 @@ class WorkbenchWindow(QMainWindow):
         layout.addWidget(QLabel("研究日期（可查看任意已完成交易日）："))
         layout.addWidget(date_picker)
 
-        content = QHBoxLayout()
-        table = QTableWidget(0, 6)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setObjectName("workbenchSplitter")
+
+        universe_panel = QFrame()
+        universe_panel.setObjectName("universePanel")
+        universe_layout = QVBoxLayout(universe_panel)
+        universe_layout.setContentsMargins(14, 14, 14, 14)
+        universe_layout.addWidget(QLabel("研究标的（点击一行查看详情）"))
+        table = QTableWidget(0, 2)
         table.setObjectName("instrumentTable")
-        table.setHorizontalHeaderLabels(
-            ["代码", "名称", "T+0证据/复核", "当前状态", "完整5分钟日", "本地数据"]
-        )
+        table.setHorizontalHeaderLabels(["代码", "ETF名称"])
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setWordWrap(False)
+        table.verticalHeader().setVisible(False)
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        table.setColumnWidth(0, 82)
         table.itemSelectionChanged.connect(self._selected_row_changed)
-        content.addWidget(table, 4)
+        universe_layout.addWidget(table)
+        splitter.addWidget(universe_panel)
 
         detail = QFrame()
-        detail.setObjectName("detailFrame")
+        detail.setObjectName("detailArea")
         detail_layout = QVBoxLayout(detail)
+        detail_layout.setContentsMargins(0, 0, 0, 0)
         detail_title = QLabel("选择一只ETF查看详情")
         detail_title.setObjectName("detailTitle")
         detail_status = QLabel("状态：等待选择")
@@ -145,26 +161,39 @@ class WorkbenchWindow(QMainWindow):
         chart = TrendChart()
         trend_summary = QLabel("连续上涨区间：—")
         trend_summary.setObjectName("trendSummary")
-        interval_list = QLabel("区间明细：—")
+        interval_list = QTextEdit("区间明细：—")
         interval_list.setObjectName("intervalList")
-        interval_list.setWordWrap(True)
+        interval_list.setReadOnly(True)
+        interval_list.setMinimumHeight(170)
+        interval_list.setMaximumHeight(220)
         disclaimer = QLabel(
             "研究提示：图形和上涨区间仅由已完成原生bar计算。没有对应盘口时，不能证明成交或短线利润。"
         )
         disclaimer.setObjectName("disclaimerLabel")
-        for widget in (
-            detail_title,
-            detail_status,
-            chart_caption,
-            day_stats,
-            chart,
-            trend_summary,
-            interval_list,
-            disclaimer,
-        ):
-            detail_layout.addWidget(widget)
-        content.addWidget(detail, 6)
-        layout.addLayout(content, 1)
+
+        overview_panel, overview_layout = _section_panel("标的概览", "overviewPanel")
+        overview_layout.addWidget(detail_title)
+        overview_layout.addWidget(detail_status)
+        chart_panel, chart_layout = _section_panel("价格与日内走势", "chartPanel")
+        chart_layout.addWidget(chart_caption)
+        chart_layout.addWidget(day_stats)
+        chart_layout.addWidget(chart)
+        interval_panel, interval_layout = _section_panel("连续上涨区间（收盘后研究）", "intervalPanel")
+        interval_layout.addWidget(trend_summary)
+        interval_layout.addWidget(interval_list)
+        boundary_panel, boundary_layout = _section_panel("研究边界", "researchBoundaryPanel")
+        boundary_layout.addWidget(disclaimer)
+        for panel in (overview_panel, chart_panel, interval_panel, boundary_panel):
+            detail_layout.addWidget(panel)
+        detail_layout.addStretch(1)
+        detail_scroll = QScrollArea()
+        detail_scroll.setObjectName("detailScrollArea")
+        detail_scroll.setWidgetResizable(True)
+        detail_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        detail_scroll.setWidget(detail)
+        splitter.addWidget(detail_scroll)
+        splitter.setSizes([430, 750])
+        layout.addWidget(splitter, 1)
 
         reload_button = QPushButton("重新读取本机数据库")
         reload_button.setObjectName("reloadButton")
@@ -180,14 +209,10 @@ class WorkbenchWindow(QMainWindow):
             values = (
                 item.code,
                 item.trading_name,
-                f"{item.t0_evidence_status}\n{item.last_review_date}",
-                item.security_status,
-                str(item.historical_five_minute_days),
-                item.current_day_data_status,
             )
             for column, value in enumerate(values):
                 table.setItem(row, column, QTableWidgetItem(value))
-        table.resizeColumnsToContents()
+        table.setColumnWidth(0, 82)
 
     def _selected_row_changed(self) -> None:
         table = self.findChild(QTableWidget, "instrumentTable")
@@ -212,6 +237,7 @@ class WorkbenchWindow(QMainWindow):
         status_text = {
             "RESEARCH_READY": "状态：本地收盘研究可用",
             "WAIT_COMPLETE_DAY": "状态：WAIT-COMPLETE-DAY｜本地序列不完整，不能生成收盘区间",
+            "WAIT_DATA_QUALITY": "状态：WAIT-DATA-QUALITY｜供应商OHLC字段异常，不能生成趋势区间",
             "WAIT_DATA": "状态：WAIT-DATA｜该ETF没有可用本地当日序列",
         }[detail.status]
         self.findChild(QLabel, "detailStatus").setText(
@@ -237,7 +263,7 @@ class WorkbenchWindow(QMainWindow):
             else "连续上涨区间：—"
         )
         self.findChild(QLabel, "trendSummary").setText(summary)
-        self.findChild(QLabel, "intervalList").setText(_format_intervals(detail))
+        self.findChild(QTextEdit, "intervalList").setPlainText(_format_intervals(detail))
 
     def detail_text_snapshot(self) -> str:
         widgets: Iterable[QWidget] = self.findChildren(QWidget)
@@ -251,15 +277,32 @@ class WorkbenchWindow(QMainWindow):
             QLabel#titleLabel { font-size: 26px; font-weight: 700; }
             QLabel#subtitleLabel { color: #52606d; }
             QLabel#detailTitle { font-size: 20px; font-weight: 650; }
-            QFrame#detailFrame { background: white; border: 1px solid #d9e2ec;
-                                 border-radius: 10px; padding: 12px; }
+            QFrame#universePanel, QFrame#detailArea { background: transparent; }
+            QFrame#overviewPanel, QFrame#chartPanel, QFrame#intervalPanel,
+            QFrame#researchBoundaryPanel { background: white; border: 1px solid #d9e2ec;
+                                           border-radius: 10px; padding: 8px; }
+            QLabel#sectionTitle { font-size: 15px; font-weight: 700; color: #243b53;
+                                  padding-bottom: 3px; }
             QTableWidget { background: white; border: 1px solid #d9e2ec; }
+            QTextEdit#intervalList { background: #f8fafc; border: 1px solid #d9e2ec;
+                                     border-radius: 6px; padding: 6px; }
             QPushButton { padding: 8px 14px; background: #1f6feb; color: white;
                           border: 0; border-radius: 6px; font-weight: 650; }
             QLabel#disclaimerLabel { background: #fff8e6; color: #7c4a03;
                                      padding: 8px; border-radius: 6px; }
             """
         )
+
+
+def _section_panel(title: str, object_name: str) -> tuple[QFrame, QVBoxLayout]:
+    panel = QFrame()
+    panel.setObjectName(object_name)
+    layout = QVBoxLayout(panel)
+    layout.setContentsMargins(14, 12, 14, 12)
+    heading = QLabel(title)
+    heading.setObjectName("sectionTitle")
+    layout.addWidget(heading)
+    return panel, layout
 
 
 def _format_intervals(detail: TargetTrendDetail) -> str:
@@ -281,6 +324,11 @@ def _format_day_stats(detail: TargetTrendDetail) -> str:
         return "今日变动：等待本地原生数据。"
     opening = Decimal(detail.bars[0][1])
     latest = Decimal(detail.bars[-1][2])
+    if opening <= 0:
+        return (
+            f"日内统计：数据质量异常｜首根开盘字段为 {opening}，"
+            f"不计算涨跌幅｜末根收盘 {latest:.3f}"
+        )
     high = max(Decimal(item[3]) for item in detail.bars)
     low = min(Decimal(item[4]) for item in detail.bars)
     change_bps = (latest - opening) / opening * Decimal(10_000)

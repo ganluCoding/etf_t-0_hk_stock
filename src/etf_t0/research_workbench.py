@@ -84,6 +84,25 @@ def bootstrap_workspace_database(*, workspace: Path) -> ResearchStore:
             ).isoformat(timespec="seconds"),
             source_name="eastmoney_public_forward_quote",
         )
+    collection_report_directory = workspace / "reports/generated/workbench_collection"
+    legacy_latest_report = collection_report_directory / "latest.json"
+    if legacy_latest_report.is_file():
+        latest_payload = json.loads(legacy_latest_report.read_text(encoding="utf-8"))
+        capture_id = latest_payload.get("capture_id")
+        if isinstance(capture_id, str) and capture_id:
+            immutable_report_path = collection_report_directory / f"{capture_id}.json"
+            if not immutable_report_path.exists():
+                immutable_report_path.write_text(
+                    json.dumps(latest_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+    for collection_report_path in sorted(collection_report_directory.glob("*.json")):
+        if collection_report_path.name == "latest.json":
+            continue
+        collection_report = json.loads(collection_report_path.read_text(encoding="utf-8"))
+        if {"capture_id", "collected_at", "requested", "succeeded", "failed", "results"}.issubset(
+            collection_report
+        ):
+            store.record_collection_run(collection_report, report_path=collection_report_path)
     return store
 
 
@@ -96,7 +115,21 @@ def collect_one_minute_workspace(*, workspace: Path) -> dict:
     records = confirmed_t0_records(
         load_universe_ledger(workspace / "config/universe/t0_etf_ledger.json")
     )
-    return collect_universe_one_minute(workspace=workspace, store=store, records=records)
+    report = collect_universe_one_minute(workspace=workspace, store=store, records=records)
+    from etf_t0.workbench_service import (
+        ResearchWorkbenchService,
+        load_trend_detection_parameters,
+    )
+
+    trade_date = datetime.fromisoformat(str(report["collected_at"])).date()
+    service = ResearchWorkbenchService(
+        store=store,
+        parameters=load_trend_detection_parameters(workspace / "config/trend_detection.json"),
+        clock=lambda: str(report["collected_at"]),
+    )
+    for record in records:
+        service.persist_completed_trends(record.code, trade_date=trade_date)
+    return report
 
 
 def main() -> None:
