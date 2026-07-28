@@ -123,6 +123,39 @@ def test_break_even_reprices_sell_side_percentage_fees() -> None:
     )
 
 
+def test_break_even_reprices_each_tick_until_execution_buffer_is_covered() -> None:
+    _, schedule = provisional_fee_scenarios()
+
+    result = break_even_for_round_trip(
+        schedule=schedule,
+        entry_price=Decimal("1.469"),
+        quantity=3400,
+        required_net_profit_cny=Decimal("6.80"),
+    )
+    prior_exit = result.tick_aligned_exit_price - Decimal("0.001")
+    prior_sell = cost_for_order(
+        schedule=schedule,
+        side=OrderSide.SELL,
+        reference_notional=prior_exit * result.quantity,
+    )
+    final_sell_notional = result.tick_aligned_exit_price * result.quantity
+    final_net_profit = (
+        final_sell_notional
+        - result.round_trip_cost.sell.economic_cost
+        - result.reference_notional
+        - result.round_trip_cost.buy.economic_cost
+    )
+    prior_net_profit = (
+        prior_exit * result.quantity
+        - prior_sell.economic_cost
+        - result.reference_notional
+        - result.round_trip_cost.buy.economic_cost
+    )
+
+    assert final_net_profit >= Decimal("6.80")
+    assert prior_net_profit < Decimal("6.80")
+
+
 def test_fee_schedule_can_declare_a_broker_rounding_mode() -> None:
     schedule = FeeSchedule(
         name="round-down",

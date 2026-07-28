@@ -1,6 +1,6 @@
 # 目标 ETF 单代码桌面观察应用设计
 
-- 状态：Approved v0.3；M1 fixed-fixture implementation complete
+- 状态：Approved v0.4；M2 current-paper implementation complete
 - 任务：Issue #24
 - 日期：2026-07-26
 - 范围：产品、界面、应用服务与安全边界设计；不包含代码实现
@@ -338,8 +338,9 @@ TargetObservationService
 
 ### M2：本地数据集成
 
-- 接入目标行情、IOPV、费用档案和已有策略注册表。
-- 增加短时价格、盈亏平衡参考、强制退出状态、失效清除、审计日志和目标 ETF 图表。
+- Issue #28 已实现：接入目标行情、IOPV、通用临时保守费用档案和冻结策略；后台刷新、30 秒失效清除、因果 L48 进度、逐 tick 成本覆盖、决策审计日志和本机 macOS 启动器已落地。
+- G2/G3 未通过时继续显示 `UNVERIFIED RESEARCH FEED` 和“实盘准入 ✕”；只有当前快照、连续因果 L48、资格、策略 lineage 和保守成本门禁通过后，才显示带水印的纸面观察价。
+- 手工成交录入、持仓态 H12/日终/风险强制退出、目标 ETF 图表和可跨电脑分发的签名安装包延后到后续纵向切片，不属于 M2 已交付能力。
 
 ### M3：纸面前向观察
 

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "calendar_id": "SOUTHBOUND_NORMAL_OVERLAP_2026_V1",
+  "timezone": "Asia/Shanghai",
+  "valid_from": "2026-01-01",
+  "valid_through": "2026-12-31",
+  "reviewed_on": "2026-07-28",
+  "source_urls": [
+    "https://www.sse.com.cn/services/hkexsc/disclo/announ/c/c_20251222_10802519.shtml",
+    "https://www.hkex.com.hk/-/media/HKEX-Market/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2025/ce_SEHK_CTCSC_176_2025.pdf"
+  ],
+  "full_day_closed_dates": [
+    "2026-01-01",
+    "2026-01-02",
+    "2026-02-16",
+    "2026-02-17",
+    "2026-02-18",
+    "2026-02-19",
+    "2026-02-20",
+    "2026-02-23",
+    "2026-04-03",
+    "2026-04-06",
+    "2026-04-07",
+    "2026-05-01",
+    "2026-05-04",
+    "2026-05-05",
+    "2026-05-25",
+    "2026-06-19",
+    "2026-07-01",
+    "2026-09-25",
+    "2026-10-01",
+    "2026-10-02",
+    "2026-10-05",
+    "2026-10-06",
+    "2026-10-07",
+    "2026-10-19",
+    "2026-12-25"
+  ],
+  "partial_day_not_normal_dates": [
+    "2026-12-24",
+    "2026-12-31"
+  ],
+  "note": "Weekdays inside the validity range are normal-overlap candidates unless listed closed or partial. Unexpected suspensions and ETF creation/redemption status remain G2 blockers."
+}

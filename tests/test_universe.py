@@ -8,6 +8,7 @@ from etf_t0.universe import (
     EligibilityStatus,
     EtfUniverseRecord,
     EvidenceSourceKind,
+    SecurityStatus,
     T0Evidence,
     confirmed_t0_records,
     load_universe_ledger,
@@ -56,7 +57,7 @@ def test_pending_record_does_not_enter_confirmed_universe() -> None:
         listing_date=date(2026, 1, 2),
         status=EligibilityStatus.PENDING_REVIEW,
         last_review_date=date(2026, 7, 25),
-        security_status="unknown",
+        security_status=SecurityStatus.UNKNOWN,
         evidence=None,
     )
 
@@ -74,7 +75,7 @@ def test_confirmed_record_without_explicit_t0_language_is_rejected() -> None:
         listing_date=date(2026, 1, 2),
         status=EligibilityStatus.CONFIRMED,
         last_review_date=date(2026, 7, 25),
-        security_status="listed",
+        security_status=SecurityStatus.LISTED,
         evidence=T0Evidence(
             issuer="深圳证券交易所",
             source_document_url="https://example.invalid/notice",
@@ -100,7 +101,7 @@ def test_confirmed_record_with_a_negative_t0_statement_is_rejected() -> None:
         listing_date=date(2026, 1, 2),
         status=EligibilityStatus.CONFIRMED,
         last_review_date=date(2026, 7, 25),
-        security_status="listed",
+        security_status=SecurityStatus.LISTED,
         evidence=T0Evidence(
             issuer="深圳证券交易所",
             source_document_url="https://example.invalid/notice",
@@ -126,7 +127,7 @@ def test_sse_intraday_turnaround_language_is_accepted() -> None:
         listing_date=date(2026, 1, 2),
         status=EligibilityStatus.CONFIRMED,
         last_review_date=date(2026, 7, 26),
-        security_status="listed",
+        security_status=SecurityStatus.LISTED,
         evidence=T0Evidence(
             issuer="上海证券交易所",
             source_document_url="https://example.invalid/notice",
@@ -158,9 +159,25 @@ def test_confirmed_record_rejects_empty_audit_fields_and_mirror_note() -> None:
     record = next(item for item in load_universe_ledger(LEDGER_PATH) if item.code == "159567")
     assert record.evidence is not None
 
-    for field in ("fund_name", "trading_name", "manager", "tracked_index", "security_status"):
+    for field in ("fund_name", "trading_name", "manager", "tracked_index"):
         with pytest.raises(ValueError, match=field):
             replace(record, **{field: ""}).validate()
 
+    with pytest.raises(TypeError, match="security_status"):
+        replace(record, security_status="not listed").validate()
+
     with pytest.raises(ValueError, match="source access note"):
         replace(record, evidence=replace(record.evidence, source_access_note="")).validate()
+
+
+def test_t0_evidence_binds_the_affirmative_statement_to_one_security_code() -> None:
+    record = next(item for item in load_universe_ledger(LEDGER_PATH) if item.code == "159570")
+    assert record.evidence is not None
+    evidence = record.evidence
+
+    assert evidence.asserts_same_day_turnaround_for("159570") is True
+    mixed = replace(
+        evidence,
+        same_day_turnaround_quote="159570仅作参考、159567实施当日回转交易。",
+    )
+    assert mixed.asserts_same_day_turnaround_for("159570") is False

@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import pytest
 
+from etf_t0 import forward_collection
 from etf_t0.forward_collection import (
     EXPECTED_ONE_MINUTE_TIMES,
     capture_quote_snapshot,
@@ -17,6 +18,7 @@ from etf_t0.forward_collection import (
     one_minute_quality,
     session_label,
     sync_one_minute_bars,
+    write_run_manifest,
 )
 
 
@@ -98,6 +100,22 @@ def test_quote_eligibility_requires_fresh_core_session_provider_date() -> None:
     assert row["iopv"] == 1.416
     assert stale["is_candidate_forward_quote"] is False
     assert session_label(weekend) == "weekend_outside_core"
+
+
+def test_closing_call_auction_is_not_a_candidate_quote_session() -> None:
+    closing = datetime(2026, 7, 27, 14, 57, tzinfo=ZoneInfo("Asia/Shanghai"))
+    row = normalize_quote_row(
+        _quote_row("159570", closing),
+        exchange="SZSE",
+        observed_at=closing,
+        capture_id="closing",
+        forward_start=closing.date(),
+        freshness_limit_seconds=120,
+        depth=None,
+    )
+
+    assert session_label(closing) == "closing_call_auction"
+    assert row["is_candidate_forward_quote"] is False
 
 
 def test_depth_parser_does_not_substitute_missing_levels() -> None:
@@ -309,3 +327,73 @@ def test_minute_sync_accepts_session_end_bar_in_completion_grace(
     )
 
     assert all(report["quality"]["candidate_forward_pair_rows"] == 1 for report in reports.values())
+
+
+def test_manifest_write_failure_preserves_last_complete_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = load_forward_config(Path("config/forward_collection.json"))
+    report_path = (
+        tmp_path / "reports" / "generated" / "forward_capture" / "latest_manifest.json"
+    )
+    report_path.parent.mkdir(parents=True)
+    report_path.write_text('{"snapshot":"previous-complete"}', encoding="utf-8")
+    original_write_text = Path.write_text
+
+    def interrupted_write(path: Path, data: str, **kwargs) -> int:
+        original_write_text(path, "partial", encoding="utf-8")
+        raise OSError("simulated interruption")
+
+    monkeypatch.setattr(Path, "write_text", interrupted_write)
+
+    with pytest.raises(OSError, match="simulated interruption"):
+        write_run_manifest(
+            config=config,
+            workspace=tmp_path,
+            latest_rows=[],
+            minute={},
+        )
+
+    assert report_path.read_text(encoding="utf-8") == '{"snapshot":"previous-complete"}'
+
+
+def test_run_loop_publishes_each_completed_capture_cycle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    published: list[list[dict[str, object]]] = []
+    heartbeats: list[str] = []
+    monkeypatch.setattr(forward_collection, "validate_configured_symbols", lambda *args: None)
+    monkeypatch.setattr(
+        forward_collection,
+        "discover_symbol_pages",
+        lambda symbols: {symbol: index + 1 for index, symbol in enumerate(symbols)},
+    )
+    monkeypatch.setattr(forward_collection, "session_label", lambda now: "afternoon_core")
+    monkeypatch.setattr(forward_collection, "is_minute_capture_window", lambda now: False)
+    monkeypatch.setattr(
+        forward_collection,
+        "capture_quote_snapshot",
+        lambda **kwargs: [{"capture_id": "cycle-1", "symbol": "159570"}],
+    )
+
+    def record_manifest(**kwargs):
+        published.append(kwargs["latest_rows"])
+        return {"latest_quote_rows": kwargs["latest_rows"]}
+
+    monkeypatch.setattr(forward_collection, "write_run_manifest", record_manifest)
+    monkeypatch.setattr(forward_collection.time, "sleep", lambda seconds: None)
+
+    result = forward_collection.run_loop(
+        config_path=Path("config/forward_collection.json"),
+        ledger_path=Path("config/universe/t0_etf_ledger.json"),
+        workspace=tmp_path,
+        duration_minutes=1,
+        max_cycles=1,
+        cycle_callback=lambda manifest: heartbeats.append(
+            manifest["latest_quote_rows"][0]["capture_id"]
+        ),
+    )
+
+    assert published == [[{"capture_id": "cycle-1", "symbol": "159570"}]]
+    assert heartbeats == ["cycle-1"]
+    assert result["latest_quote_rows"][0]["capture_id"] == "cycle-1"

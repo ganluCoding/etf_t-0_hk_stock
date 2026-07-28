@@ -34,7 +34,20 @@
 
 “候选”不等于“有效实时行情”。东财 `push2delay` 的传输时延、沪深与香港/港股通交易日历错位、跨源核对和券商可执行性未完成前，`valid_forward_sample_available` 固定为 `false`，G2/G3 仍为 BLOCKED。
 
+桌面纸面观察另使用版本化的 `config/normal_overlap_calendar_2026.json`。该文件依据上交所和港交所公布的 2026 港股通交易日安排，排除周末、全日关闭及只有半日服务的日期；有效期外一律 fail-closed。突发停市、ETF 临时停牌和申购赎回状态仍属于 G2 待核验项，不能由静态日历推断。
+
 ## 运行方式
+
+推荐使用带单实例锁、原子 manifest 和心跳的有界采集服务：
+
+```bash
+PYTHONPATH=src .venv/bin/python -m etf_t0.collector_service \
+  --workspace "$PWD" --duration-minutes 135
+```
+
+心跳位于 `reports/generated/forward_capture/collector_heartbeat.json`，状态为 `STARTING`、`RUNNING`、`COMPLETED`、`INTERRUPTED` 或 `FAILED`。独立心跳线程默认每 15 秒更新，即使盘前等待或行情采集周期暂时没有生成 manifest 也不会自然过期。采集过程每个完整周期都会原子替换 `latest_manifest.json`。桌面程序只有在心跳新鲜且 PID 仍存活时才复用该 manifest；死亡 PID 或陈旧心跳会进入受同一文件锁保护的单次恢复路径，不会并发写行情文件。
+
+当前 macOS 工作区位于受隐私保护的 `Documents` 目录，独立 LaunchAgent 无法稳定获取目录权限，因此不作为默认方案。项目已配置两个具有本地项目权限的 Codex 工作日定时任务：09:25 和 12:55 各运行 135 分钟；失败时才通知。
 
 非交易时段只做一次链路探测：
 

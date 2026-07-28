@@ -1,8 +1,8 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.7
-- 更新日期：2026-07-26
-- 项目阶段：首批多标的 5 分钟数据采集、单/多策略假设探索已实施；159570/513780 的前向 1 分钟、盘口与 IOPV 采集器已建立，首个有效前向样本尚未产生；目标 ETF 单代码桌面应用 M1 固定夹具原型已实现，尚未接入实时行情
+- 文档状态：Draft v0.8
+- 更新日期：2026-07-28
+- 项目阶段：M2 本地数据集成已实现；159570 可显示 30 秒内的当日目标盘口、IOPV、数据门禁和因果 bar 进度。当前公开网络数据固定标记为 `UNVERIFIED RESEARCH FEED`；G2 跨源/日历与 G3 券商可执行性/深度未通过，因此实盘准入始终为 No-Go。只有当前快照、连续因果 L48、资格、策略 lineage 与保守成本门禁全部通过时，才可显示带水印的纸面观察价
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
 ## Problem Statement
@@ -124,7 +124,7 @@
 
 - The product is a research and decision-support system. It will not connect to a broker for order submission, cancellation or account control.
 - The initial collection template is 159567, but it is not a preferred or final trading instrument. The first multi-symbol research batch contains 16 evidence-backed Hong Kong or Hong Kong Stock Connect equity ETFs across SZSE and SSE; future expansion remains fail-closed on exchange evidence and current listing status.
-- Every universe entry will include an exchange-issued announcement URL or a current exchange official-list designation, evidence date, last review date, current security status, legal fund name, trading code, manager and tracked index. An original exchange URL is preferred; when only an exchange-issued mirrored copy is accessible, the ledger must record its content SHA-256 fingerprint, issuer, exact T+0 quote and why the original URL was unavailable.
+- Every universe entry will include an exchange-issued announcement URL or a current exchange official-list designation, evidence date, last review date, enumerated current security status, legal fund name, trading code, manager and tracked index. The eligibility gate accepts only the exact `listed` state and binds an affirmative same-day-turnaround statement to a single target security record. An original exchange URL is preferred; when only an exchange-issued mirrored copy is accessible, the ledger must record its content SHA-256 fingerprint, issuer, exact T+0 quote and why the original URL was unavailable.
 - The universe service, market-data adapter, calendar service, fee engine, portfolio ledger, execution simulator, analysis engine and reporting layer will be separate modules.
 - External data providers will be isolated behind adapters because free endpoints, field names and retention periods can change.
 - The initial free-data path will prioritize native 5-minute OHLCV for the latest 30 complete trading days.
@@ -282,14 +282,18 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - If minute-level history is insufficient, an alternative source will be considered separately.
 - Overnight base inventory is approved.
 - The 50% inventory / 50% cash split is an initial research baseline only and may be changed by an explicit risk decision before formal validation.
-- The target-ETF single-code desktop design is proposed in Issue #24. Toolkit choice, packaging format and the paper-observation display policy require user review before implementation.
-- Issue #26 implements the approved M1 fixed-fixture prototype. Real quote/IOPV adapters, local settings persistence, user-reported fills, decision journaling and packaging remain M2 or later work.
+- Issue #26 implements the approved M1 fixed-fixture prototype; it is now available only through the explicit `--demo` option.
+- Issue #28 implements M2 current-paper observation: live local target quote/IOPV diagnostics, a versioned 2026 normal-overlap calendar, causal one-minute-to-five-minute vintages, L48 frozen-policy calculation, full-config lineage locking, conservative cost gating, fail-closed expiry, atomic manifests, independent supervised collection heartbeats, target-only decision journaling and background desktop refresh.
+- The public web feed remains `UNVERIFIED RESEARCH FEED`. G2/G3 stay blocked until independent calendar/cross-source and broker-executable quote/depth validation are complete. They block controlled-live validation, but do not permanently hide explicitly watermarked paper prices after the current-snapshot, causal L48, eligibility, policy-lineage and conservative-cost gates pass.
+- User-reported fills, position-state forced exits, a target-only chart and standalone application packaging remain later vertical slices.
 
 ### Primary References
 
 - Shenzhen Stock Exchange rule on cross-border ETF same-day turnaround trading: https://www.szse.cn/disclosure/notice/general/t20150109_501348.html
 - Shenzhen Stock Exchange 2026 fee schedule: https://investor.szse.cn/marketServices/deal/payFees/index.html
 - Shenzhen Stock Exchange Trading Rules (2026 revision): https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020260424690713155663.pdf
+- SSE official 2026 Southbound Stock Connect trading-day arrangement: https://www.sse.com.cn/services/hkexsc/disclo/announ/c/c_20251222_10802519.shtml
+- HKEX Stock Connect trading calendar for 2026: https://www.hkex.com.hk/-/media/HKEX-Market/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2025/ce_SEHK_CTCSC_176_2025.pdf
 - PRC Stamp Tax Law: https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193058/content.html
 - ChinaClear Shenzhen market fee schedule: https://www.chinaclear.cn/zdjs/fbzyls/202506/ab6384ba25514554a7eceaee3e521032/files/%E6%B7%B1%E5%9C%B3%E5%B8%82%E5%9C%BA%E8%AF%81%E5%88%B8%E7%99%BB%E8%AE%B0%E7%BB%93%E7%AE%97%E4%B8%9A%E5%8A%A1%E6%94%B6%E8%B4%B9%E5%8F%8A%E4%BB%A3%E6%94%B6%E7%A8%8E%E8%B4%B9%E4%B8%80%E8%A7%88%E8%A1%A8.pdf
 - AKShare public-fund data documentation: https://akshare.akfamily.xyz/data/fund/fund_public.html

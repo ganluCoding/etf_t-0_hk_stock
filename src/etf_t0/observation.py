@@ -45,6 +45,7 @@ class ObservationMode(str, Enum):
 
 class DecisionStatus(str, Enum):
     NO_GO = "no_go"
+    WAIT_DATA = "wait_data"
     WAIT = "wait"
 
 
@@ -87,6 +88,13 @@ class TargetObservationDecision:
     policy_metadata: ObservationPolicyMetadata | None
     generated_at: datetime
     reasons: tuple[str, ...] = ()
+    target_iopv: Decimal | None = None
+    feed_label: str | None = None
+    data_valid_until: datetime | None = None
+    signal_bar_count: int | None = None
+    signal_bar_required: int | None = None
+    data_gate_reasons: tuple[str, ...] = ()
+    config_sha256: str | None = None
 
 
 @dataclass(frozen=True)
