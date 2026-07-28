@@ -84,6 +84,8 @@ def test_target_detail_prefers_native_one_minute_bars_and_persists_uptrends(
     assert len(detail.bars) == len(EXPECTED_ONE_MINUTE_TIMES)
     assert len(detail.completed_uptrends) == 1
     assert detail.completed_uptrends[0].executable_profit_status == "NO_EXECUTABLE_QUOTES"
+    assert store.completed_uptrends_for_day("159567", date(2026, 7, 28)) == ()
+    service.persist_completed_trends("159567", trade_date=date(2026, 7, 28))
     assert len(store.completed_uptrends_for_day("159567", date(2026, 7, 28))) == 1
 
 
@@ -111,6 +113,36 @@ def test_partial_session_never_creates_completed_trend_intervals(tmp_path: Path)
     detail = service.target_detail("159567", trade_date=date(2026, 7, 28))
 
     assert detail.status == "WAIT_COMPLETE_DAY"
+    assert detail.completed_uptrends == ()
+
+
+def test_complete_time_labels_with_zero_ohlc_return_data_quality_wait_state(
+    tmp_path: Path,
+) -> None:
+    store = ResearchStore(tmp_path / "research.sqlite3")
+    store.sync_instruments(load_universe_ledger(LEDGER_PATH))
+    bars, raw_payload = tmp_path / "zero_open.csv", tmp_path / "raw.json"
+    _write_complete_one_minute_day(bars)
+    bars.write_text(
+        bars.read_text(encoding="utf-8").replace(
+            "2026-07-28 09:30:00,1.000,1.000", "2026-07-28 09:30:00,0.000,1.000"
+        ),
+        encoding="utf-8",
+    )
+    raw_payload.write_text('{"source":"fixture"}', encoding="utf-8")
+    store.ingest_native_bar_csv(
+        code="159567", interval_minutes=1, csv_path=bars, raw_payload_path=raw_payload,
+        acquired_at="2026-07-28T15:10:00+08:00", source_name="fixture"
+    )
+    service = ResearchWorkbenchService(
+        store=store,
+        parameters=TrendDetectionParameters("m3-uptrend-v1", 3, 20, 20),
+        clock=lambda: "2026-07-28T15:10:00+08:00",
+    )
+
+    detail = service.target_detail("159567", trade_date=date(2026, 7, 28))
+
+    assert detail.status == "WAIT_DATA_QUALITY"
     assert detail.completed_uptrends == ()
 
 
