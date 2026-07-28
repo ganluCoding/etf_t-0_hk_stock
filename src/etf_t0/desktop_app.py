@@ -639,9 +639,36 @@ class ObservationWindow(QMainWindow):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--demo", action="store_true")
+    parser.add_argument(
+        "--single-observation",
+        action="store_true",
+        help="open the M2 single-target current-paper observation screen",
+    )
     parser.add_argument("--workspace", type=Path)
     args, qt_args = parser.parse_known_args()
     app = QApplication([sys.argv[0], *qt_args])
+    workspace = args.workspace or Path(__file__).resolve().parents[2]
+    if not args.demo and not args.single_observation:
+        from etf_t0.research_workbench import bootstrap_workspace_database
+        from etf_t0.workbench_app import WorkbenchWindow
+        from etf_t0.workbench_service import (
+            ResearchWorkbenchService,
+            load_trend_detection_parameters,
+        )
+
+        store = bootstrap_workspace_database(workspace=workspace)
+        workbench = WorkbenchWindow(
+            service=ResearchWorkbenchService(
+                store=store,
+                parameters=load_trend_detection_parameters(
+                    workspace / "config/trend_detection.json"
+                ),
+                clock=lambda: datetime.now(SHANGHAI).isoformat(timespec="seconds"),
+            ),
+            trade_date=datetime.now(SHANGHAI).date(),
+        )
+        workbench.show()
+        raise SystemExit(app.exec())
     journal_directory = None
     if args.demo:
         fixture_start = datetime(2026, 7, 27, 10, 0, 15, tzinfo=SHANGHAI)
@@ -652,7 +679,6 @@ def main() -> None:
 
         service = create_m1_fixture_service(clock=advancing_fixture_clock)
     else:
-        workspace = args.workspace or Path(__file__).resolve().parents[2]
         service = create_desktop_service(workspace=workspace)
         journal_directory = workspace / "reports" / "generated" / "desktop_decisions"
     window = ObservationWindow(
