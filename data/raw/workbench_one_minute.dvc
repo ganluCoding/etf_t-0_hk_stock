@@ -1,0 +1,6 @@
+outs:
+- md5: d095fd513cef3fd1eca4823834a6ca59.dir
+  size: 1258034
+  nfiles: 16
+  hash: md5
+  path: workbench_one_minute

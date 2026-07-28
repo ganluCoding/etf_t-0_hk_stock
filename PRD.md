@@ -1,8 +1,8 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.8
+- 文档状态：Draft v0.9
 - 更新日期：2026-07-28
-- 项目阶段：M2 本地数据集成已实现；159570 可显示 30 秒内的当日目标盘口、IOPV、数据门禁和因果 bar 进度。当前公开网络数据固定标记为 `UNVERIFIED RESEARCH FEED`；G2 跨源/日历与 G3 券商可执行性/深度未通过，因此实盘准入始终为 No-Go。只有当前快照、连续因果 L48、资格、策略 lineage 与保守成本门禁全部通过时，才可显示带水印的纸面观察价
+- 项目阶段：M2 本地数据集成已实现；Issue #30 / M3 正在把16只合资格研究标的扩展为本地数据库驱动的收盘研究工作台。当前公开网络数据固定标记为 `UNVERIFIED RESEARCH FEED`；G2 跨源/日历与 G3 券商可执行性/深度未通过，因此实盘准入始终为 No-Go。只有当前快照、连续因果 L48、资格、策略 lineage 与保守成本门禁全部通过时，才可显示带水印的纸面观察价
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
 ## Problem Statement
@@ -39,7 +39,9 @@
 9. 在获得更长历史和足够成交信息后，研究 IOPV、同指数代理价差、滚动 VWAP、EMA 等候选锚点。
 10. 使用保守的成交模拟、完整的现金与持仓约束以及账户总权益核算进行回测。
 11. 通过样本外验证、成本压力测试和模拟盘后，才允许以最小交易单位进行受控人工实盘验证。
-12. 提供本机桌面观察应用：用户日常只输入目标 ETF 代码，应用读取已保存的本地费用与资金档案，输出目标 ETF 的观察买入上限、观察卖出下限、有效期、成本覆盖和 No-Go 原因。
+12. 提供本机桌面观察应用：首页展示首批16只研究标的及其数据能力，用户进入任一目标 ETF 后只观察该目标；应用读取已保存的本地费用与资金档案，输出趋势、数据质量、观察买入上限、观察卖出下限、有效期、成本覆盖和 No-Go 原因。
+13. 建立本机 SQLite 研究数据库保存标准化行情、数据质量、采集运行和可复现的趋势区间；原始供应商载荷继续保留为本机不可变文件及 DVC 指针。
+14. 收盘后从原生分钟数据识别连续上涨区间，并将“价格趋势”与“已由 bid/ask 和成本验证的可执行空间”明确分开显示。
 
 本项目的最终产物不是自动交易程序，而是：
 
@@ -119,11 +121,21 @@
 64. As an A 股账户投资者, I want any IOPV, same-index, theme or market proxy to remain an internal research input rather than a second order leg, while remaining available in an audit trace, so that the output stays simple without becoming an opaque black box.
 65. As an A 股账户投资者, I want ineligible symbols, stale data, invalid quotes, unavailable anchors, uncovered costs or failed gates required by the requested mode to return No-Go with no reusable price, so that the interface fails closed.
 66. As an A 股账户投资者, I want paper-observation prices visually and semantically separated from controlled-live-validation prices, so that exploratory output is never presented as an approved recommendation.
+67. As an A 股账户投资者, I want a desktop home screen to list every ETF in the confirmed research universe with its data and strategy readiness, so that entering one code does not falsely imply that all confirmed ETFs already have the same capability.
+68. As an A 股账户投资者, I want to open one ETF at a time and inspect its current or completed-day one-minute and five-minute price trend, so that I can study intraday movement without trading an internal reference.
+69. As an A 股账户投资者, I want all crawled bars, quote snapshots, data quality checks and collection runs stored in a local database with source lineage, so that the desktop can query them reliably and I can reproduce a result.
+70. As an A 股账户投资者, I want raw provider responses retained outside Git and linked by immutable path and hash, so that database convenience does not weaken data provenance or expose large market data in version control.
+71. As an A 股账户投资者, I want the application to identify completed continuous-uptrend intervals with their duration, rise and maximum pullback, so that I can study recurring intraday patterns after the close.
+72. As an A 股账户投资者, I want a separate conservative cost-coverage annotation only when executable bid/ask evidence exists, so that a bar-level upward move is not represented as an achievable short-term profit.
+73. As an A 股账户投资者, I want every trend interval to retain its detection parameters, input data vintage and calculation time, so that I cannot unknowingly tune the definition after seeing the day’s result.
+74. As an A 股账户投资者, I want missing or incomplete current-day data shown as WAIT-DATA rather than filled by another ETF or an interpolated bar, so that cross-symbol and fabricated evidence cannot drive a decision.
+75. As an A 股账户投资者, I want the app to remain research-only while showing these trends, so that a completed rising interval is never treated as a guaranteed next trade or automatic order.
 
 ## Implementation Decisions
 
 - The product is a research and decision-support system. It will not connect to a broker for order submission, cancellation or account control.
 - The initial collection template is 159567, but it is not a preferred or final trading instrument. The first multi-symbol research batch contains 16 evidence-backed Hong Kong or Hong Kong Stock Connect equity ETFs across SZSE and SSE; future expansion remains fail-closed on exchange evidence and current listing status.
+- The desktop research workbench displays all 16 confirmed research instruments, but a visible instrument is not automatically an eligible paper-observation target. The capability registry must separately state T+0 evidence, current status review, historical coverage, current-day data, fee profile, frozen policy, permitted mode and blocking gates.
 - Every universe entry will include an exchange-issued announcement URL or a current exchange official-list designation, evidence date, last review date, enumerated current security status, legal fund name, trading code, manager and tracked index. The eligibility gate accepts only the exact `listed` state and binds an affirmative same-day-turnaround statement to a single target security record. An original exchange URL is preferred; when only an exchange-issued mirrored copy is accessible, the ledger must record its content SHA-256 fingerprint, issuer, exact T+0 quote and why the original URL was unavailable.
 - The universe service, market-data adapter, calendar service, fee engine, portfolio ledger, execution simulator, analysis engine and reporting layer will be separate modules.
 - External data providers will be isolated behind adapters because free endpoints, field names and retention periods can change.
@@ -132,6 +144,7 @@
 - If historical 1-minute quotes are unavailable for free, the system will support forward accumulation of native 1-minute bars and real-time bid/ask snapshots.
 - Historical Level-1, Level-2, tick and IOPV data will be optional capabilities. Strategy claims requiring those data will remain blocked until an appropriate source is available.
 - Raw source data will be immutable after ingestion. Cleaning, session labeling and resampling will produce derived datasets with lineage back to the raw observation.
+- SQLite is the local operational database for normalized instruments, immutable raw-payload references, acquisition runs, quote snapshots, bar vintages, quality results, trend intervals and desktop research decisions. Raw JSON and larger derived datasets remain local files managed by DVC pointers; neither belongs in ordinary Git.
 - The canonical timestamp timezone will be Asia/Shanghai. Each record will retain source acquisition time and session classification.
 - The initial core analysis session will be 09:30–11:30 and 13:00–15:00. Opening auction will be stored as an event. Closing auction will be flagged within the final interval. After-hours fixed-price trading will be stored separately and excluded by default.
 - A complete normal core trading day is expected to contain 48 native 5-minute bars. Exceptions must be explained by suspension, market calendar, provider failure or another explicit status.
@@ -172,6 +185,9 @@
 - One-minute payload vintages are immutable. Only completed, recent, valid-OHLC bars whose timestamp belongs to the corresponding core session, and which are first observed during that session or its predeclared 11:30–11:37/15:00–15:07 completion window for both instruments, may be candidate paired bars; later backfill is retained but not promoted to point-in-time evidence.
 - Public bid/ask and IOPV snapshots do not establish broker executability. Missing depth, source delivery latency, queueing and partial fills keep G3 blocked and must not be imputed.
 - The desktop application is a local target-ETF observation client. Its primary workflow accepts one target ETF code; it does not ask for a proxy code and does not expose any proxy order, position or trading action.
+- The M3 desktop home screen is a master list of the 16 research instruments. A detail screen is still target-only: selecting an ETF never exposes an internal reference as a second tradeable leg.
+- End-of-day trend research uses native one-minute bars when available, otherwise clearly labelled native five-minute bars. A completed uptrend interval is descriptive: it records a predeclared rise, duration and drawdown rule and never becomes a next-day recommendation. An executable cost-coverage annotation requires contemporaneous bid/ask evidence and conservative full transaction costs; OHLC alone cannot prove fills.
+- The M3 collector must ingest each instrument independently. It must never reuse a quote, IOPV, bar, fee profile, policy or data-quality result from a different ETF. Missing current-day data remains `WAIT_DATA`.
 - Background anchors may use point-in-time IOPV, the target ETF's own causal history, or an approved internal reference instrument. Every component must remain versioned and auditable, but only the target ETF's prices appear on the primary decision card.
 - The first desktop release will expose a paper-observation mode. Controlled-live-validation wording and state remain disabled until G0–G7 pass; a research price is never silently promoted when a gate fails.
 - Paper observation and controlled live validation use separate gate matrices. Paper mode requires G1, a registered frozen policy, an eligible current snapshot and a conservative cost profile; G0 and project-wide G2–G7 remain visible blockers of live mode but do not hide explicitly labelled paper prices. Live mode requires G0–G7 without exception.
@@ -221,6 +237,9 @@
 - Risk-control tests will verify daily loss stops, inventory caps, drawdown pauses, spread stops, stale-data stops and prohibition of martingale sizing.
 - Desktop service tests will assert that only an eligible target code is accepted; No-Go, expired and stale-data exit states contain no target quote, observation or break-even prices; both otherwise displayed prices share one snapshot and policy version; and all values use legal tick rounding.
 - Desktop presentation tests will assert that the primary screen contains no proxy trading control, broker action, order shortcut or guaranteed-profit wording, and that paper-observation status remains visible whenever G8 is unavailable.
+- Database integration tests will prove that all 16 configured instrument identities can be listed, bar and quote vintages retain source/run lineage, duplicate ingestion is idempotent, and one target cannot query another target’s data.
+- Trend-research tests will use fixed native-bar fixtures to verify predeclared completed intervals, duration, cumulative return and maximum pullback. They will assert that no interval contains future bars, that missing data yields `WAIT_DATA`, and that a bar-only interval has no executable-profit claim.
+- Desktop workbench tests will cover the 16-row capability list, target-only detail selection, historical versus current-day labels, data-quality presentation and at least two independent target detail paths.
 - Manual-fill tests will bind a user-entered target fill to its originating decision, validate tick/lot/time/fee fields and recompute break-even status without mutating the original decision snapshot or delaying a mandatory exit.
 - Desktop clock and session tests will prove that UI input cannot override freshness time and that lunch, opening/closing auctions, post-close, resume and network recovery clear prices.
 - Stress tests will rerun the same policy under baseline, 1.5-times and 2-times transaction-cost assumptions.
@@ -284,6 +303,8 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - The 50% inventory / 50% cash split is an initial research baseline only and may be changed by an explicit risk decision before formal validation.
 - Issue #26 implements the approved M1 fixed-fixture prototype; it is now available only through the explicit `--demo` option.
 - Issue #28 implements M2 current-paper observation: live local target quote/IOPV diagnostics, a versioned 2026 normal-overlap calendar, causal one-minute-to-five-minute vintages, L48 frozen-policy calculation, full-config lineage locking, conservative cost gating, fail-closed expiry, atomic manifests, independent supervised collection heartbeats, target-only decision journaling and background desktop refresh.
+- Issue #30 implements M3 multi-ETF research workbench: SQLite-backed local research records, 16-instrument capability discovery, independently persisted multi-symbol data, target detail trend charts and reproducible continuous-uptrend interval research. It does not grant a generic strategy or paper-trading price to every listed instrument.
+- Issue #31 follows M3 with broker-validated contemporaneous bid/ask cost coverage and complete minute-collection quality/run accounting. Until it is complete, all M3 OHLC trend intervals remain descriptive and explicitly `NO_EXECUTABLE_QUOTES`.
 - The public web feed remains `UNVERIFIED RESEARCH FEED`. G2/G3 stay blocked until independent calendar/cross-source and broker-executable quote/depth validation are complete. They block controlled-live validation, but do not permanently hide explicitly watermarked paper prices after the current-snapshot, causal L48, eligibility, policy-lineage and conservative-cost gates pass.
 - User-reported fills, position-state forced exits, a target-only chart and standalone application packaging remain later vertical slices.
 

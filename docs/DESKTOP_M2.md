@@ -1,10 +1,17 @@
-# 桌面观察应用 M2 使用与运维
+# 桌面研究工作台 M3 与 M2 观察应用使用与运维
 
 ## 当前能力与边界
 
-M2 是连接本机当日研究数据的桌面软件，不是自动交易程序。当前唯一注册目标是 `159570`；内部参考只参与研究计算，不在主界面出现，也不是用户需要交易的第二条腿。
+默认启动的是 M3 多ETF本地研究工作台：它列出16只已确认T+0研究标的，点击后显示该标的的本地日内趋势、数据状态和收盘后描述性上涨区间。它不是自动交易程序。M2 单标的纸面观察仍可通过 `--single-observation` 打开；当前唯一注册目标仍是 `159570`，内部参考只参与研究计算，不在主界面出现，也不是用户需要交易的第二条腿。
 
-桌面程序可以：
+M3 工作台可以：
+
+- 显示16只ETF各自的历史5分钟完整日数、最新本地一分钟数据日期和策略注册状态。
+- 显示选中ETF的原生1分钟趋势；只有本地没有1分钟数据时才回退到明确标注的原生5分钟数据。
+- 标出预先版本化的、收盘后确认的连续上涨区间（持续时间、累计涨幅、最大回撤）。没有对应盘口时，区间固定标记为“无盘口可执行性证据”，不能解释为可获得的短线利润。
+- 只显示用户选择的目标ETF；不显示代理ETF的买卖或仓位。
+
+M2 单标的观察程序可以：
 
 - 在连续竞价时段读取 30 秒内的目标买一、卖一和 IOPV。
 - 后台执行网络刷新，防止界面卡死；首次成功后每 15 秒刷新。
@@ -19,23 +26,27 @@ M2 是连接本机当日研究数据的桌面软件，不是自动交易程序�
 
 ```bash
 uv sync --all-groups
+# 默认打开16只ETF的M3收盘研究工作台
 PYTHONPATH=src uv run python -m etf_t0.desktop_app
 ```
 
-输入 `159570` 后点击“开始观察”。按钮显示“正在刷新…”时，网络任务在后台执行。如需验证 M1 界面而不读真实数据，必须显式使用：
+从左侧16只ETF列表选择一个标的，即可查看它在本机数据库中的当日趋势、完整历史日数、上涨区间与数据状态。绿色图段表示已识别的收盘后上涨区间；它不是下单指令，也不代表已可成交利润。M2单标的纸面观察需要显式使用：
 
 ```bash
+PYTHONPATH=src uv run python -m etf_t0.desktop_app --single-observation
+
+# 如需验证M1固定夹具而不读真实数据
 PYTHONPATH=src uv run python -m etf_t0.desktop_app --demo
 ```
 
-macOS 可双击版由同一个已测试环境生成：
+macOS Finder 可双击启动文件由同一个已测试环境生成：
 
 ```bash
 PYTHONPATH=src uv run python -m etf_t0.macos_bundle
-open "dist/T0 ETF Observation.app"
+open "dist/启动 T0 ETF 工作台.command"
 ```
 
-该 `.app` 是本机启动器，绑定当前工作区和 `.venv`；不是可复制到其他电脑的独立签名安装包。它通过 macOS LaunchServices 让 Terminal 打开应用包内的 `launch.command`，不使用 AppleScript、也不请求“控制 Terminal”权限。Terminal 必须具备读取当前 Documents 工作区的权限。启动日志位于 `reports/generated/desktop_app/`。
+命令会在 `dist/` 生成 Finder 可双击的 `启动 T0 ETF 工作台.command`，绑定当前工作区和 `.venv`；不是可复制到其他电脑的独立签名安装包。当前工作区位于 macOS 受保护的“文稿”目录，Finder 会将此文件交给 Terminal 运行，以复用 Terminal 已获的目录访问权；它不使用 AppleScript，也不要求“控制 Terminal”权限。启动日志位于 `reports/generated/desktop_app/`。若未来将运行时和数据迁出“文稿”或完成正式签名，可再提供纯无终端的独立 `.app`。
 
 ## 数据与计算契约
 
@@ -53,7 +64,7 @@ open "dist/T0 ETF Observation.app"
 
 ## 连续采集与恢复
 
-项目使用两个 Codex 本地定时任务：工作日 09:25 和 12:55 各启动一次 135 分钟有界采集。采集器有单实例锁，重复任务不会重复写入。采状态位于：
+项目使用三个 Codex 本地定时任务：工作日09:25和12:55各启动一次135分钟的159570 M2前向采集；工作日15:07独立采集16只ETF的收盘后原生一分钟窗口并写入SQLite。采集器有单实例锁，重复任务不会重复写入。M2采集状态位于：
 
 ```text
 reports/generated/forward_capture/collector_heartbeat.json
@@ -77,7 +88,7 @@ reports/generated/forward_capture/latest_manifest.json
 - 采集心跳、manifest 和本地原始/标准化文件持续增长。
 - 桌面按钮后台刷新完成，显示 WAIT-DATA、目标盘口、IOPV 与 bar 进度，内部参考代码未出现。
 - 买入/卖出观察线为空，G2/G3 与实盘准入明确为未通过。
-- 新版 macOS 启动器已通过 LaunchServices 真实启动测试：成功拉起项目 `.venv` 中的桌面 Python 进程，且没有 AppleScript/applet 进程。
-- 干净环境 smoke：将最小源码与配置复制到 `/private/tmp`，不复制现有 `.venv`、数据、日志或 `dist`；`uv sync --all-groups` 新建环境并安装 119 个锁定依赖后，新生成 `.app` 成功拉起临时环境内的 `etf_t0.desktop_app` 进程。验收后进程已正常终止。
+- Finder 启动文件已通过真实启动测试：成功拉起 Terminal 承载的项目 `.venv` 桌面 Python 进程；没有 AppleScript/applet 进程。
+- 干净环境 smoke：将最小源码与配置复制到 `/private/tmp`，不复制现有 `.venv`、数据、日志或 `dist`；`uv sync --all-groups` 新建环境并安装锁定依赖后，新生成的 Finder 启动文件可拉起临时环境内的 `etf_t0.desktop_app` 进程。验收后进程已正常终止。
 
 当日只有 44 组成对候选 1 分钟前向 bar，不足连续 L48，因此观察线为空是因果数据门禁的正确结果。G2/G3 继续阻断实盘准入；即使后续出现纸面观察价，也不证明公开数据可执行或策略盈利。

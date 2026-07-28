@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "version": "m3-uptrend-close-v1",
+  "description": "Post-close descriptive intervals over completed native-bar closes; not a future-price forecast or order signal.",
+  "minimum_duration_bars": 5,
+  "minimum_rise_bps": "15",
+  "maximum_pullback_bps": "12"
+}

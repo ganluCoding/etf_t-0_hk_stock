@@ -1,42 +1,39 @@
-"""Build a local macOS app that opens the tested desktop runtime in Terminal."""
+"""Build the supported Finder launcher for the local desktop workbench."""
 
 from __future__ import annotations
 
 import argparse
-import plistlib
 import shlex
 import stat
 from pathlib import Path
 
-APP_NAME = "T0 ETF Observation.app"
+LAUNCHER_NAME = "启动 T0 ETF 工作台.command"
 
 
 def _make_executable(path: Path) -> None:
-    path.chmod(
-        path.stat().st_mode
-        | stat.S_IXUSR
-        | stat.S_IXGRP
-        | stat.S_IXOTH
-    )
+    path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
-def build_macos_app(*, workspace: Path, output_directory: Path) -> Path:
-    """Create a local launcher without requesting Apple Events permission."""
+def build_macos_launcher(*, workspace: Path, output_directory: Path) -> Path:
+    """Create a Finder-double-clickable launcher bound to this local workspace.
+
+    The workspace currently sits in macOS' protected Documents directory.
+    A `.command` file is intentionally used: Finder hands it to Terminal, which
+    can receive the user's folder permission.  An unsigned `.app` cannot
+    reliably inherit that access or automate Terminal without an extra macOS
+    Automation permission, so it is not presented as a supported launcher.
+    """
 
     workspace = workspace.resolve()
     python = workspace / ".venv" / "bin" / "python"
-    app = output_directory.resolve() / APP_NAME
-    if app.exists():
-        raise FileExistsError(f"refusing to overwrite existing app: {app}")
-
-    macos = app / "Contents" / "MacOS"
-    resources = app / "Contents" / "Resources"
-    macos.mkdir(parents=True)
-    resources.mkdir(parents=True)
+    output_directory = output_directory.resolve()
+    output_directory.mkdir(parents=True, exist_ok=True)
+    launcher = output_directory / LAUNCHER_NAME
+    if launcher.exists():
+        raise FileExistsError(f"refusing to overwrite existing launcher: {launcher}")
 
     logs = workspace / "reports" / "generated" / "desktop_app"
-    command_file = resources / "launch.command"
-    command_file.write_text(
+    launcher.write_text(
         "#!/bin/zsh\n"
         "set -eu\n"
         f"cd {shlex.quote(str(workspace))}\n"
@@ -48,30 +45,8 @@ def build_macos_app(*, workspace: Path, output_directory: Path) -> Path:
         f"2>> {shlex.quote(str(logs / 'stderr.log'))}\n",
         encoding="utf-8",
     )
-    _make_executable(command_file)
-
-    launcher = macos / "launcher"
-    launcher.write_text(
-        "#!/bin/zsh\n"
-        "set -eu\n"
-        f"/usr/bin/open -a Terminal {shlex.quote(str(command_file))}\n",
-        encoding="utf-8",
-    )
     _make_executable(launcher)
-
-    info = {
-        "CFBundleDisplayName": "T0 ETF Observation",
-        "CFBundleExecutable": "launcher",
-        "CFBundleIdentifier": "com.ganlu.etft0.observation",
-        "CFBundleName": "T0 ETF Observation",
-        "CFBundlePackageType": "APPL",
-        "CFBundleShortVersionString": "0.2.0",
-        "CFBundleVersion": "2",
-        "LSMinimumSystemVersion": "13.0",
-    }
-    (app / "Contents" / "Info.plist").write_bytes(plistlib.dumps(info))
-    (resources / "workspace.txt").write_text(str(workspace), encoding="utf-8")
-    return app
+    return launcher
 
 
 def main() -> None:
@@ -79,11 +54,11 @@ def main() -> None:
     parser.add_argument("--workspace", type=Path, default=Path.cwd())
     parser.add_argument("--output", type=Path, default=Path("dist"))
     args = parser.parse_args()
-    app = build_macos_app(
+    launcher = build_macos_launcher(
         workspace=args.workspace,
         output_directory=args.output,
     )
-    print(app)
+    print(launcher)
 
 
 if __name__ == "__main__":
