@@ -244,8 +244,10 @@ def session_label(observed_at: datetime) -> str:
     clock = observed_at.timetz().replace(tzinfo=None)
     if wall_time(9, 30) <= clock <= wall_time(11, 30):
         return "morning_core"
-    if wall_time(13, 0) <= clock <= wall_time(15, 0):
+    if wall_time(13, 0) <= clock < wall_time(14, 57):
         return "afternoon_core"
+    if wall_time(14, 57) <= clock <= wall_time(15, 0):
+        return "closing_call_auction"
     return "weekday_outside_core"
 
 
@@ -777,7 +779,17 @@ def write_run_manifest(
     }
     report_path = workspace / "reports" / "generated" / "forward_capture" / "latest_manifest.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary_path = report_path.with_name(
+        f".{report_path.name}.{uuid.uuid4().hex}.tmp"
+    )
+    try:
+        temporary_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        temporary_path.replace(report_path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
     return manifest
 
 
@@ -810,7 +822,13 @@ def run_once(
 
 
 def run_loop(
-    *, config_path: Path, ledger_path: Path, workspace: Path, duration_minutes: int
+    *,
+    config_path: Path,
+    ledger_path: Path,
+    workspace: Path,
+    duration_minutes: int,
+    max_cycles: int | None = None,
+    cycle_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     if duration_minutes <= 0:
         raise ValueError("duration must be positive")
@@ -822,9 +840,12 @@ def run_loop(
     last_depth = last_minute = -math.inf
     latest: list[dict[str, Any]] = []
     minute_report: dict[str, Any] = {}
+    last_manifest: dict[str, Any] | None = None
+    cycles = 0
     while time.monotonic() < deadline:
         now = datetime.now(ZoneInfo(config["timezone"]))
         elapsed = time.monotonic()
+        changed = False
         if session_label(now) in {"morning_core", "afternoon_core"}:
             include_depth = elapsed - last_depth >= int(config["depth_interval_seconds"])
             latest = capture_quote_snapshot(
@@ -833,6 +854,7 @@ def run_loop(
                 symbol_pages=pages,
                 include_depth=include_depth,
             )
+            changed = True
             if include_depth:
                 last_depth = elapsed
         if is_minute_capture_window(now) and elapsed - last_minute >= int(
@@ -840,13 +862,28 @@ def run_loop(
         ):
             minute_report = sync_one_minute_bars(config=config, workspace=workspace)
             last_minute = elapsed
+            changed = True
+        if changed:
+            last_manifest = write_run_manifest(
+                config=config,
+                workspace=workspace,
+                latest_rows=latest,
+                minute=minute_report,
+            )
+            if cycle_callback is not None:
+                cycle_callback(last_manifest)
+        cycles += 1
+        if max_cycles is not None and cycles >= max_cycles:
+            break
         time.sleep(int(config["quote_interval_seconds"]))
-    return write_run_manifest(
-        config=config,
-        workspace=workspace,
-        latest_rows=latest,
-        minute=minute_report,
+    if last_manifest is not None:
+        return last_manifest
+    last_manifest = write_run_manifest(
+        config=config, workspace=workspace, latest_rows=latest, minute=minute_report
     )
+    if cycle_callback is not None:
+        cycle_callback(last_manifest)
+    return last_manifest
 
 
 def main() -> None:

@@ -184,7 +184,11 @@ def round_trip_cost(*, schedule: FeeSchedule, reference_notional: Decimal) -> Ro
 
 
 def break_even_for_round_trip(
-    *, schedule: FeeSchedule, entry_price: Decimal, quantity: int
+    *,
+    schedule: FeeSchedule,
+    entry_price: Decimal,
+    quantity: int,
+    required_net_profit_cny: Decimal = Decimal(0),
 ) -> BreakEvenResult:
     """Return gross price movement required to cover a declared round-trip scenario.
 
@@ -199,13 +203,17 @@ def break_even_for_round_trip(
         raise ValueError("entry price must align to the 0.001 ETF price tick")
     if quantity <= 0 or quantity % 100 != 0:
         raise ValueError("quantity must be a positive multiple of 100 ETF units")
+    if required_net_profit_cny < 0:
+        raise ValueError("required net profit must not be negative")
 
     schedule.validate()
     reference_notional = entry_price * quantity
     buy = cost_for_order(
         schedule=schedule, side=OrderSide.BUY, reference_notional=reference_notional
     )
-    required_sell_proceeds = reference_notional + buy.economic_cost
+    required_sell_proceeds = (
+        reference_notional + buy.economic_cost + required_net_profit_cny
+    )
     variable_sell_rate = (
         schedule.commission_rate + schedule.stamp_duty_rate + schedule.transfer_fee_rate
     )

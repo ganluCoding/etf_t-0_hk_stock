@@ -20,6 +20,15 @@ class EligibilityStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class SecurityStatus(str, Enum):
+    """Current exchange security status used by fail-closed eligibility gates."""
+
+    LISTED = "listed"
+    SUSPENDED = "suspended"
+    DELISTED = "delisted"
+    UNKNOWN = "unknown"
+
+
 class EvidenceSourceKind(str, Enum):
     """How the exchange-issued announcement is accessed."""
 
@@ -38,6 +47,32 @@ class T0Evidence:
     source_access_note: str
     source_kind: EvidenceSourceKind
     source_content_sha256: str | None = None
+
+    def asserts_same_day_turnaround_for(self, code: str) -> bool:
+        """Bind an affirmative turnaround statement to exactly one security code."""
+
+        quote = self.same_day_turnaround_quote.replace(" ", "")
+        quoted_codes = set(re.findall(r"(?<!\d)\d{6}(?!\d)", quote))
+        if quoted_codes != {code}:
+            return False
+        positive_statements = (
+            "实施当日回转交易",
+            "实施日内回转交易",
+            "当日回转交易基金",
+        )
+        negative_statements = (
+            "不实施当日回转交易",
+            "未实施当日回转交易",
+            "不实施日内回转交易",
+            "未实施日内回转交易",
+        )
+        records = re.split(r"[。！？；;\n\r]+", quote)
+        return any(
+            code in item
+            and any(statement in item for statement in positive_statements)
+            and not any(statement in item for statement in negative_statements)
+            for item in records
+        )
 
     def validate(self) -> None:
         if not self.issuer.strip():
@@ -82,7 +117,7 @@ class EtfUniverseRecord:
     listing_date: date
     status: EligibilityStatus
     last_review_date: date
-    security_status: str
+    security_status: SecurityStatus
     evidence: T0Evidence | None
     notes: str = ""
 
@@ -92,7 +127,6 @@ class EtfUniverseRecord:
             "trading_name": self.trading_name,
             "manager": self.manager,
             "tracked_index": self.tracked_index,
-            "security_status": self.security_status,
         }
         missing_fields = [name for name, value in required_audit_fields.items() if not value.strip()]
         if missing_fields:
@@ -101,6 +135,8 @@ class EtfUniverseRecord:
             raise ValueError("ETF code must be a six-digit string")
         if self.exchange not in {"SZSE", "SSE"}:
             raise ValueError("exchange must be SZSE or SSE")
+        if not isinstance(self.security_status, SecurityStatus):
+            raise TypeError("security_status must be a supported current-status enum")
         if self.last_review_date < self.listing_date:
             raise ValueError("last review date cannot precede listing date")
         if self.status is EligibilityStatus.CONFIRMED:
@@ -152,7 +188,7 @@ def load_universe_ledger(path: Path) -> list[EtfUniverseRecord]:
             listing_date=_parse_date(item["listing_date"]),
             status=EligibilityStatus(item["status"]),
             last_review_date=_parse_date(item["last_review_date"]),
-            security_status=item["security_status"],
+            security_status=SecurityStatus(item["security_status"]),
             evidence=_parse_evidence(item.get("evidence")),
             notes=item.get("notes", ""),
         )

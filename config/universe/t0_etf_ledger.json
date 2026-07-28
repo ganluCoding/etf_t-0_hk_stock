@@ -12,7 +12,7 @@
       "listing_date": "2024-01-11",
       "status": "confirmed",
       "last_review_date": "2026-07-25",
-      "security_status": "listed; current tradability and suspension status must be checked before each research run",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://pdf.dfcfw.com/pdf/H2_AN202401081616760234_1.pdf",
@@ -34,7 +34,7 @@
       "listing_date": "2012-10-22",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/general/t20150109_501348.html",
@@ -55,7 +55,7 @@
       "listing_date": "2021-02-19",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/t20210209_584730.html",
@@ -76,7 +76,7 @@
       "listing_date": "2021-09-28",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/t20210923_588528.html",
@@ -97,7 +97,7 @@
       "listing_date": "2024-01-22",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/fund/t20240117_605654.html",
@@ -118,7 +118,7 @@
       "listing_date": "2025-11-03",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/t20251029_616786.html",
@@ -139,7 +139,7 @@
       "listing_date": "2026-01-08",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/t20260105_618247.html",
@@ -160,7 +160,7 @@
       "listing_date": "2026-05-13",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/t20260508_620409.html",
@@ -181,7 +181,7 @@
       "listing_date": "2026-04-24",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/fund/t20260421_620087.html",
@@ -202,7 +202,7 @@
       "listing_date": "2026-07-16",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "深圳证券交易所",
         "source_document_url": "https://www.szse.cn/disclosure/notice/t20260713_621618.html",
@@ -223,7 +223,7 @@
       "listing_date": "2012-10-22",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "上海证券交易所",
         "source_document_url": "https://etf.sse.com.cn/fundlist/",
@@ -244,7 +244,7 @@
       "listing_date": "2015-01-26",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "上海证券交易所",
         "source_document_url": "https://etf.sse.com.cn/fundlist/",
@@ -265,7 +265,7 @@
       "listing_date": "2021-05-25",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "上海证券交易所",
         "source_document_url": "https://etf.sse.com.cn/fundlist/",
@@ -286,7 +286,7 @@
       "listing_date": "2021-02-08",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "上海证券交易所",
         "source_document_url": "https://etf.sse.com.cn/fundlist/",
@@ -307,7 +307,7 @@
       "listing_date": "2021-01-13",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "上海证券交易所",
         "source_document_url": "https://etf.sse.com.cn/fundlist/",
@@ -328,7 +328,7 @@
       "listing_date": "2024-10-25",
       "status": "confirmed",
       "last_review_date": "2026-07-26",
-      "security_status": "listed; present in the 2026-07-24 Eastmoney ETF spot snapshot",
+      "security_status": "listed",
       "evidence": {
         "issuer": "上海证券交易所",
         "source_document_url": "https://www.sse.com.cn/disclosure/announcement/listing/c/c_20241024_10763287.shtml",

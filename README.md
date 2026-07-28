@@ -14,6 +14,7 @@
 - [2026-07-27 159570 人工观察简报](reports/2026-07-27_159570_manual_observation_brief.md)
 - [目标 ETF 单代码桌面观察应用设计](docs/DESKTOP_APP_DESIGN.md)
 - [桌面观察应用 M1 使用说明](docs/DESKTOP_M1.md)
+- [桌面观察应用 M2 使用与运维](docs/DESKTOP_M2.md)
 - [架构决策记录](docs/adr/)
 - [GitHub Issues](https://github.com/ganluCoding/etf_t-0_hk_stock/issues)
 
@@ -32,8 +33,14 @@ uv run pytest
 PYTHONPATH=src uv run python -m etf_t0.multi_strategy
 # 仅用于非交易时段的 stale 链路探测，不产生有效样本
 PYTHONPATH=src uv run python -m etf_t0.forward_collection --allow-outside-session
-# M1固定夹具桌面原型；不是实时行情
+# M2当前纸面观察；使用本机研究数据，不连接券商
 PYTHONPATH=src uv run python -m etf_t0.desktop_app
+# 只有显式指定才启动M1固定夹具
+PYTHONPATH=src uv run python -m etf_t0.desktop_app --demo
+# 有界、单实例的前向采集器（示例：135分钟）
+PYTHONPATH=src .venv/bin/python -m etf_t0.collector_service --duration-minutes 135
+# 生成本机可双击 macOS 启动器
+PYTHONPATH=src uv run python -m etf_t0.macos_bundle
 ```
 
 数据文件保留在本机，具体规则见 `docs/DATA_VERSIONING.md`。不要将券商交割单、API 密钥或原始行情直接提交到 Git。
