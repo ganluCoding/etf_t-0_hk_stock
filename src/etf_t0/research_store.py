@@ -16,6 +16,8 @@ from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from etf_t0.break_even_ledger import PaperExecutionOutcome, PaperExecutionRecord
+from etf_t0.fees import OrderSide
 from etf_t0.trend_research import CompletedUptrend, TrendDetectionParameters
 from etf_t0.universe import EtfUniverseRecord
 
@@ -134,6 +136,23 @@ class ResearchStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_quote_snapshots_lookup
                     ON quote_snapshots(instrument_code, observed_at);
+                CREATE TABLE IF NOT EXISTS paper_execution_records (
+                    instrument_code TEXT NOT NULL REFERENCES instruments(code),
+                    observed_at TEXT NOT NULL,
+                    normal_overlap_day INTEGER NOT NULL CHECK(normal_overlap_day IN (0, 1)),
+                    intended_side TEXT NOT NULL,
+                    intended_price TEXT NOT NULL,
+                    intended_quantity INTEGER NOT NULL,
+                    observed_bid1_price TEXT NOT NULL,
+                    observed_ask1_price TEXT NOT NULL,
+                    quote_source TEXT NOT NULL,
+                    fee_evidence TEXT NOT NULL,
+                    outcome TEXT NOT NULL,
+                    filled_price TEXT,
+                    filled_quantity INTEGER NOT NULL,
+                    outcome_reason TEXT,
+                    PRIMARY KEY(instrument_code, observed_at, intended_side, intended_price, intended_quantity)
+                );
                 CREATE TABLE IF NOT EXISTS collection_runs (
                     capture_id TEXT PRIMARY KEY,
                     collected_at TEXT NOT NULL,
@@ -635,6 +654,87 @@ class ResearchStore:
             source_name=row["source_name"],
             raw_payload_path=row["raw_payload_path"],
             raw_payload_sha256=row["sha256"],
+        )
+
+    def store_paper_execution_record(self, record: PaperExecutionRecord) -> None:
+        """Persist one validated manual observation; this never contacts a broker."""
+
+        record.validate()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO paper_execution_records(
+                    instrument_code, observed_at, normal_overlap_day, intended_side,
+                    intended_price, intended_quantity, observed_bid1_price, observed_ask1_price,
+                    quote_source, fee_evidence, outcome, filled_price, filled_quantity,
+                    outcome_reason
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(instrument_code, observed_at, intended_side, intended_price, intended_quantity)
+                DO UPDATE SET
+                    normal_overlap_day = excluded.normal_overlap_day,
+                    observed_bid1_price = excluded.observed_bid1_price,
+                    observed_ask1_price = excluded.observed_ask1_price,
+                    quote_source = excluded.quote_source,
+                    fee_evidence = excluded.fee_evidence,
+                    outcome = excluded.outcome,
+                    filled_price = excluded.filled_price,
+                    filled_quantity = excluded.filled_quantity,
+                    outcome_reason = excluded.outcome_reason
+                """,
+                (
+                    record.symbol,
+                    record.observed_at.isoformat(),
+                    int(record.normal_overlap_day),
+                    record.intended_side.value,
+                    str(record.intended_price),
+                    record.intended_quantity,
+                    str(record.observed_bid1_price),
+                    str(record.observed_ask1_price),
+                    record.quote_source,
+                    record.fee_evidence,
+                    record.outcome.value,
+                    str(record.filled_price) if record.filled_price is not None else None,
+                    record.filled_quantity,
+                    record.outcome_reason,
+                ),
+            )
+
+    def paper_execution_records_for_symbol(self, code: str) -> tuple[PaperExecutionRecord, ...]:
+        """Return one target's manual records with every non-fill outcome retained."""
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT instrument_code, observed_at, normal_overlap_day, intended_side,
+                    intended_price, intended_quantity, observed_bid1_price, observed_ask1_price,
+                    quote_source, fee_evidence, outcome, filled_price, filled_quantity,
+                    outcome_reason
+                FROM paper_execution_records
+                WHERE instrument_code = ?
+                ORDER BY observed_at, intended_side, intended_price
+                """,
+                (code,),
+            ).fetchall()
+        return tuple(
+            PaperExecutionRecord(
+                symbol=row["instrument_code"],
+                observed_at=datetime.fromisoformat(row["observed_at"]),
+                normal_overlap_day=bool(row["normal_overlap_day"]),
+                intended_side=OrderSide(row["intended_side"]),
+                intended_price=Decimal(row["intended_price"]),
+                intended_quantity=row["intended_quantity"],
+                observed_bid1_price=Decimal(row["observed_bid1_price"]),
+                observed_ask1_price=Decimal(row["observed_ask1_price"]),
+                quote_source=row["quote_source"],
+                fee_evidence=row["fee_evidence"],
+                outcome=PaperExecutionOutcome(row["outcome"]),
+                filled_price=(
+                    Decimal(row["filled_price"]) if row["filled_price"] is not None else None
+                ),
+                filled_quantity=row["filled_quantity"],
+                outcome_reason=row["outcome_reason"],
+            )
+            for row in rows
         )
 
     def store_completed_uptrends(

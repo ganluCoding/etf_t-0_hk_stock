@@ -8,6 +8,7 @@
 - [领域上下文](CONTEXT.md)
 - [T+0 标的证据台账](docs/UNIVERSE_LEDGER.md)
 - [临时费用模型](docs/FEE_MODEL.md)
+- [回本账本（回测前成本门禁）](docs/BREAK_EVEN_LEDGER.md)
 - [数据版本规则](docs/DATA_VERSIONING.md)
 - [多策略与低频探索报告](reports/t0_etf_multi_strategy_exploration.md)
 - [159570/513780 前向采集手册](docs/FORWARD_COLLECTION.md)
@@ -32,6 +33,8 @@
 uv sync --all-groups
 uv run pytest
 PYTHONPATH=src uv run python -m etf_t0.multi_strategy
+# 生成本机回本账本；5分钟收盘价仅用于 OHLC 保守成本筛选，不是下单价格
+PYTHONPATH=src uv run python -m etf_t0.break_even_report
 # 仅用于非交易时段的 stale 链路探测，不产生有效样本
 PYTHONPATH=src uv run python -m etf_t0.forward_collection --allow-outside-session
 # M3多ETF研究工作台；使用本机SQLite与本地研究数据，不连接券商
