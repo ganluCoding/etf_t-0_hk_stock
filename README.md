@@ -5,6 +5,7 @@
 ## 项目入口
 
 - [产品需求文档](PRD.md)
+- [项目活动与验证记录](docs/PROJECT_ACTIVITY.md)
 - [领域上下文](CONTEXT.md)
 - [T+0 标的证据台账](docs/UNIVERSE_LEDGER.md)
 - [临时费用模型](docs/FEE_MODEL.md)
