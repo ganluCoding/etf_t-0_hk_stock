@@ -1,9 +1,20 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v1.0
+- 文档状态：Active v1.1
 - 更新日期：2026-08-01
-- 项目阶段：M2 本地数据集成已实现；Issue #30 / M3 正在把16只合资格研究标的扩展为本地数据库驱动的收盘研究工作台。当前公开网络数据固定标记为 `UNVERIFIED RESEARCH FEED`；G2 跨源/日历与 G3 券商可执行性/深度未通过，因此实盘准入始终为 No-Go。只有当前快照、连续因果 L48、资格、策略 lineage 与保守成本门禁全部通过时，才可显示带水印的纸面观察价
+- 项目阶段：M1–M3 本地研究工作台与 G0.5 回本账本均已实现。当前公开网络数据固定标记为 `UNVERIFIED RESEARCH FEED`；G0 费用账单校准、G2 跨源/日历和 G3 券商可执行性/深度未通过，因此实盘准入始终为 No-Go。只有当前快照、连续因果 L48、资格、策略 lineage 与保守成本门禁全部通过时，才可显示带水印的纸面观察价
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
+
+## 变更记录
+
+| 日期 | 版本 | 变更 | 可追溯记录 |
+| --- | --- | --- | --- |
+| 2026-07-28 | v0.9 | 合并 16 只 T+0 ETF 的 SQLite 本地研究工作台与收盘趋势研究 | PR #32 / Issue #30 |
+| 2026-07-28 | v0.9 | 修复工作台的 ETF 代码/名称可见性与数据分区 | PR #34 / Issue #33 |
+| 2026-08-01 | v1.0 | 增加 G0.5 回本账本、三层执行证据边界与 20 日人工纸面执行要求 | PR #35 / Issue #31 |
+| 2026-08-01 | v1.1 | 固化交接基线、当前阶段门状态与版本化项目活动记录 | `docs/PROJECT_ACTIVITY.md` |
+
+完整的合并、验证和运行活动见 `docs/PROJECT_ACTIVITY.md`；原始行情和生成报告继续保留在本机，不写入 Git。
 
 ## Problem Statement
 
@@ -258,7 +269,7 @@
 - Stress tests will rerun the same policy under baseline, 1.5-times and 2-times transaction-cost assumptions.
 - Robustness tests will compare neighboring parameter settings and remove the best five trading days to detect dependence on isolated outcomes.
 - Simulation acceptance will require at least 20 trading days, no cash or inventory violations, and observed execution quality within the modeled range before any live validation.
-- There is no existing codebase or prior test suite in this workspace. Tests will therefore establish the initial behavioral contract rather than follow existing implementation prior art.
+- 项目已有行为测试、桌面展示测试、SQLite 数据库集成测试、费用/回本账本测试与保守策略测试。后续变更必须优先扩展这些高层行为契约，而不是仅对内部实现细节断言。
 
 ## Out of Scope
 
@@ -319,7 +330,7 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - Issue #26 implements the approved M1 fixed-fixture prototype; it is now available only through the explicit `--demo` option.
 - Issue #28 implements M2 current-paper observation: live local target quote/IOPV diagnostics, a versioned 2026 normal-overlap calendar, causal one-minute-to-five-minute vintages, L48 frozen-policy calculation, full-config lineage locking, conservative cost gating, fail-closed expiry, atomic manifests, independent supervised collection heartbeats, target-only decision journaling and background desktop refresh.
 - Issue #30 implements M3 multi-ETF research workbench: SQLite-backed local research records, 16-instrument capability discovery, independently persisted multi-symbol data, target detail trend charts and reproducible continuous-uptrend interval research. It does not grant a generic strategy or paper-trading price to every listed instrument.
-- Issue #31 follows M3 with the break-even ledger, broker-validated contemporaneous bid/ask cost coverage and complete minute-collection quality/run accounting. Until it is complete, all M3 OHLC trend intervals remain descriptive and explicitly `NO_EXECUTABLE_QUOTES`.
+- Issue #31 已通过 PR #35 合并：实现回本账本、严格 OHLC/quote-aware/paper-execution 证据分层、人工纸面记录本机 SQLite 留存和不可变本地报告 lineage。它没有完成券商账单校准或券商可执行盘口验证；因此所有 M3 OHLC 趋势区间仍是描述性的 `NO_EXECUTABLE_QUOTES`。
 - The public web feed remains `UNVERIFIED RESEARCH FEED`. G2/G3 stay blocked until independent calendar/cross-source and broker-executable quote/depth validation are complete. They block controlled-live validation, but do not permanently hide explicitly watermarked paper prices after the current-snapshot, causal L48, eligibility, policy-lineage and conservative-cost gates pass.
 - User-reported fills, position-state forced exits, a target-only chart and standalone application packaging remain later vertical slices.
 
