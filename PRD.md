@@ -1,7 +1,7 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Draft v0.9
-- 更新日期：2026-07-28
+- 文档状态：Draft v1.0
+- 更新日期：2026-08-01
 - 项目阶段：M2 本地数据集成已实现；Issue #30 / M3 正在把16只合资格研究标的扩展为本地数据库驱动的收盘研究工作台。当前公开网络数据固定标记为 `UNVERIFIED RESEARCH FEED`；G2 跨源/日历与 G3 券商可执行性/深度未通过，因此实盘准入始终为 No-Go。只有当前快照、连续因果 L48、资格、策略 lineage 与保守成本门禁全部通过时，才可显示带水印的纸面观察价
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
@@ -130,6 +130,11 @@
 73. As an A 股账户投资者, I want every trend interval to retain its detection parameters, input data vintage and calculation time, so that I cannot unknowingly tune the definition after seeing the day’s result.
 74. As an A 股账户投资者, I want missing or incomplete current-day data shown as WAIT-DATA rather than filled by another ETF or an interpolated bar, so that cross-symbol and fabricated evidence cannot drive a decision.
 75. As an A 股账户投资者, I want the app to remain research-only while showing these trends, so that a completed rising interval is never treated as a guaranteed next trade or automatic order.
+76. As an A 股账户投资者, I want a break-even ledger to screen every target ETF, order amount and grid spacing before any backtest, so that a parameter group whose minimum commissions consume the available movement is not optimized into a misleading result.
+77. As an A 股账户投资者, I want that ledger to separately show buy and sell minimum commission, spread, conservative slippage and queue/partial-fill haircut, so that I can tell observed costs from provisional assumptions.
+78. As an A 股账户投资者, I want the ledger to show the tick-aligned minimum round-trip movement in yuan and basis points, so that I can compare a proposed grid distance directly with its cost floor.
+79. As an A 股账户投资者, I want OHLC-conservative, quote-aware and paper-execution results kept in separate tiers, so that an assumed bar path is never mistaken for a fill probability or a manual execution record.
+80. As an A 股账户投资者, I want paper execution to retain intended price, observed executable bid/ask, fill quantity, unfilled or cancellation reason and fee evidence for every manual observation, so that 20 valid days can test the model without connecting to my broker.
 
 ## Implementation Decisions
 
@@ -158,6 +163,12 @@
 - Fund management and custody fees will be treated as fund-level NAV drag rather than per-order cash charges.
 - The cost model will separately report explicit fees, bid/ask spread, slippage, impact, queueing assumptions and missed or partial execution.
 - Decision interval and grid price spacing will be separate strategy parameters.
+- Before any strategy backtest or parameter comparison, the system will produce a versioned break-even ledger for every requested `target ETF × order amount × grid spacing × fee scenario × execution tier` combination. It will lot-round the affordable quantity, show unused cash, and reject a configuration that cannot fund one lot or whose declared grid spacing is below its tick-aligned full-cost movement.
+- The ledger will report, separately, buy-side minimum commission, sell-side minimum commission, handling and other explicit fees, observed or declared spread, conservative slippage and queue/partial-fill haircut. Missing execution inputs remain missing: zero may be used only as a clearly marked lower-bound assumption and must not be presented as an observed or broker-executable cost.
+- The `minimum round-trip movement` is the smallest legal-tick gross price movement that covers the two order cash flows and all declared economic-cost components. It must be shown in yuan per unit, ticks and basis points, together with the proposed grid movement and a `RESEARCH_BLOCKED_COST` result when the latter is insufficient. Passing this screen only means the declared arithmetic is covered; it does not establish a trade, fill, profitability or a Go decision.
+- For a fixed 10,000-yuan notional split into `N` independently charged grid round trips, the known minimum-fee lower bound alone is `10 × N` bp before lot rounding, spread, slippage or unfilled orders. The 30,000-yuan comparison lower bound is `3.33 × N` bp. The ledger, rather than this approximation, is authoritative because it uses the target's price, lot size and declared costs.
+- Execution tiers are strictly separated: `OHLC_CONSERVATIVE` permits only causal bar-level, adverse-order screening and returns `NO_EXECUTION_CLAIM`; `QUOTE_AWARE` requires same-target qualified bid/ask, source, timestamp freshness and depth/queue fields before it may discuss limit-order fill assumptions; `PAPER_EXECUTION` is a manual journal of observed orderable prices and outcomes, never a broker connection.
+- `PAPER_EXECUTION` requires at least 20 valid normal-overlap trading days. Each observation records target code, timestamp, intended side/price/quantity, contemporaneous bid/ask and source, actual filled price/quantity or unfilled/partial/cancelled outcome, fee evidence and reason. These 20 days are an execution-feasibility dataset only; they cannot replace G5's frozen 60-day holdout, 100 completed round trips and 40 active days.
 - Anchor candidates will be evaluated in this priority order: contemporaneously reconstructable IOPV or constituent-basket fair value, residual versus a liquid same-index proxy, causal rolling VWAP or EMA, and fixed reference prices such as previous close or opening range as baselines.
 - No end-of-day VWAP, closing NAV or future bar information may be used by an intraday signal.
 - A signal created after a completed bar may execute no earlier than the next available executable quote.
@@ -224,6 +235,8 @@
 - Fee tests will cover minimum commission, percentage commission above the minimum, both sides of a round trip, partial fills under the broker's charging rule, included handling fees and excluded handling fees.
 - Fee tests will assert that ETF secondary-market trades do not receive stock stamp duty by default and that exchange fees are not double counted.
 - Break-even tests will show the required price movement for several order sizes under the provisional 5-yuan-per-side assumption.
+- Break-even-ledger tests will cover affordable lot rounding, the one-lot funding failure, independent buy/sell minimum commissions, explicit separate cost components, tick-aligned minimum movement, rejected proposed grids, and a visible lower-bound status whenever broker fee or execution evidence is incomplete.
+- Execution-tier tests will prove that an OHLC row cannot be promoted to quote-aware or paper-execution status; quote-aware rows require qualified target bid/ask and declared freshness/depth; paper-execution readiness requires 20 valid manual-record days with preserved partial/unfilled outcomes.
 - The highest test seam for portfolio accounting is: given a sequence of orders, fills, fees and market quotes, the ledger returns cash, inventory, realized P&L, unrealized P&L, total equity and capital usage that reconcile exactly.
 - Portfolio tests will cover 100-share lots, insufficient cash, insufficient sellable inventory, base inventory, overnight carry, partial exits and liquidation valuation.
 - The highest test seam for execution is: given signals and market observations, the simulator returns only fills permitted by causal timing and the configured conservative execution policy.
@@ -292,6 +305,8 @@ Failure at a gate stops advancement. It does not authorize additional parameter 
 
 G0 does not block raw-data acquisition, data-quality work or descriptive 30-day reporting under clearly labelled provisional costs. It does block any actual-cost conclusion, strategy Go decision, simulated-live progression and controlled live validation.
 
+`G0.5 — break-even ledger` is a pre-backtest rejection gate, not a replacement for G0–G8. A parameter group must fund a legal lot and have a proposed grid distance at least equal to its declared tick-aligned full-cost movement. A `RESEARCH_BLOCKED_COST`, `RESEARCH_BLOCKED_LOT`, `WAIT_QUOTE_DATA`, `WAIT_EXECUTION_COST_EVIDENCE`, `WAIT_FEE_EVIDENCE`, `WAIT_FEE_SCOPE`, `NO_EXECUTION_CLAIM` or `PAPER_EXECUTION_FEASIBILITY_ONLY` row must not be selected by a performance optimizer as a viable configuration.
+
 ### Open Items
 
 - The user reported on 2026-07-25 that their CMB A-share account charges a 5-yuan minimum commission on each filled 159567 buy and sell, with no stamp duty or transfer fee. This is versioned as a user-reported lower-bound scenario, not a full broker-statement calibration.
@@ -304,7 +319,7 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - Issue #26 implements the approved M1 fixed-fixture prototype; it is now available only through the explicit `--demo` option.
 - Issue #28 implements M2 current-paper observation: live local target quote/IOPV diagnostics, a versioned 2026 normal-overlap calendar, causal one-minute-to-five-minute vintages, L48 frozen-policy calculation, full-config lineage locking, conservative cost gating, fail-closed expiry, atomic manifests, independent supervised collection heartbeats, target-only decision journaling and background desktop refresh.
 - Issue #30 implements M3 multi-ETF research workbench: SQLite-backed local research records, 16-instrument capability discovery, independently persisted multi-symbol data, target detail trend charts and reproducible continuous-uptrend interval research. It does not grant a generic strategy or paper-trading price to every listed instrument.
-- Issue #31 follows M3 with broker-validated contemporaneous bid/ask cost coverage and complete minute-collection quality/run accounting. Until it is complete, all M3 OHLC trend intervals remain descriptive and explicitly `NO_EXECUTABLE_QUOTES`.
+- Issue #31 follows M3 with the break-even ledger, broker-validated contemporaneous bid/ask cost coverage and complete minute-collection quality/run accounting. Until it is complete, all M3 OHLC trend intervals remain descriptive and explicitly `NO_EXECUTABLE_QUOTES`.
 - The public web feed remains `UNVERIFIED RESEARCH FEED`. G2/G3 stay blocked until independent calendar/cross-source and broker-executable quote/depth validation are complete. They block controlled-live validation, but do not permanently hide explicitly watermarked paper prices after the current-snapshot, causal L48, eligibility, policy-lineage and conservative-cost gates pass.
 - User-reported fills, position-state forced exits, a target-only chart and standalone application packaging remain later vertical slices.
 

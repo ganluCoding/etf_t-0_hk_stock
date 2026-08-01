@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
+from etf_t0.break_even_ledger import PaperExecutionOutcome, PaperExecutionRecord
+from etf_t0.fees import OrderSide
 from etf_t0.research_store import ResearchStore
 from etf_t0.research_workbench import bootstrap_workspace_database
 from etf_t0.trend_research import (
@@ -228,3 +230,27 @@ def test_store_ingests_target_isolated_quote_snapshots_with_raw_lineage(
     assert snapshot.ask1_price == "1.405"
     assert snapshot.raw_payload_path == str(raw_payload)
     assert store.latest_quote_snapshot("513780").last_price == "1.505"
+
+
+def test_store_retains_manual_paper_execution_outcomes(tmp_path: Path) -> None:
+    store = ResearchStore(tmp_path / "research.sqlite3")
+    store.sync_instruments(load_universe_ledger(LEDGER_PATH))
+    record = PaperExecutionRecord(
+        symbol="159567",
+        observed_at=datetime(2026, 7, 28, 10, 0, tzinfo=timezone.utc),
+        normal_overlap_day=True,
+        intended_side=OrderSide.BUY,
+        intended_price=Decimal("1.400"),
+        intended_quantity=100,
+        observed_bid1_price=Decimal("1.399"),
+        observed_ask1_price=Decimal("1.400"),
+        quote_source="manual broker-visible quote",
+        fee_evidence="fee scenario v1",
+        outcome=PaperExecutionOutcome.UNFILLED,
+        outcome_reason="limit price was not reached",
+    )
+
+    store.store_paper_execution_record(record)
+
+    assert store.paper_execution_records_for_symbol("159567") == (record,)
+    assert store.paper_execution_records_for_symbol("159570") == ()
