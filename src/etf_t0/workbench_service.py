@@ -31,6 +31,16 @@ class TargetTrendDetail:
     completed_uptrends: tuple[CompletedUptrend, ...]
 
 
+@dataclass(frozen=True)
+class CompleteDateCoverage:
+    """Newest useful completed date plus fail-closed universe coverage."""
+
+    trade_date: date | None
+    complete_instrument_count: int
+    expected_instrument_count: int
+    status: str
+
+
 class ResearchWorkbenchService:
     """Read one target at a time while retaining a multi-ETF discovery page."""
 
@@ -40,22 +50,84 @@ class ResearchWorkbenchService:
         store: ResearchStore,
         parameters: TrendDetectionParameters,
         clock: Callable[[], str],
+        expected_instrument_codes: frozenset[str],
     ) -> None:
         self._store = store
         self._parameters = parameters
         self._clock = clock
+        self._expected_instrument_codes = expected_instrument_codes
 
     def list_instruments(self) -> tuple[InstrumentCapability, ...]:
         return self._store.list_instrument_capabilities()
 
+    def latest_complete_trade_date(self) -> date | None:
+        """Return the newest date where at least one expected target is complete."""
+
+        return self.latest_complete_coverage().trade_date
+
+    def latest_complete_coverage(self) -> CompleteDateCoverage:
+        """Report newest useful date while rejecting an incomplete instrument ledger."""
+
+        calculated_at = self._clock()
+        capabilities = self.list_instruments()
+        actual_codes = frozenset(item.code for item in capabilities)
+        expected_count = len(self._expected_instrument_codes)
+        if actual_codes != self._expected_instrument_codes:
+            return CompleteDateCoverage(
+                trade_date=None,
+                complete_instrument_count=0,
+                expected_instrument_count=expected_count,
+                status="WAIT_UNIVERSE_DATA",
+            )
+        for trade_date in self._store.available_trade_dates():
+            complete_count = 0
+            for capability in capabilities:
+                target_complete = any(
+                    _is_completed_core_day(
+                        bars=self._store.bars_for_day(
+                            capability.code,
+                            trade_date,
+                            interval_minutes=interval_minutes,
+                        ),
+                        interval_minutes=interval_minutes,
+                        trade_date=trade_date,
+                        calculated_at=calculated_at,
+                    )
+                    for interval_minutes in (1, 5)
+                )
+                complete_count += int(target_complete)
+            if complete_count:
+                return CompleteDateCoverage(
+                    trade_date=trade_date,
+                    complete_instrument_count=complete_count,
+                    expected_instrument_count=expected_count,
+                    status=(
+                        "FULL_COVERAGE" if complete_count == expected_count else "PARTIAL_COVERAGE"
+                    ),
+                )
+        return CompleteDateCoverage(
+            trade_date=None,
+            complete_instrument_count=0,
+            expected_instrument_count=expected_count,
+            status="WAIT_DATA",
+        )
+
     def target_detail(self, code: str, *, trade_date: date) -> TargetTrendDetail:
         """Prefer native one-minute bars, then labelled native five-minute fallback."""
 
-        capability = next(
-            (item for item in self.list_instruments() if item.code == code), None
-        )
+        capabilities = self.list_instruments()
+        capability = next((item for item in capabilities if item.code == code), None)
         if capability is None:
             raise ValueError(f"unknown research ETF: {code}")
+        if frozenset(item.code for item in capabilities) != self._expected_instrument_codes:
+            return TargetTrendDetail(
+                capability=capability,
+                status="WAIT_UNIVERSE_DATA",
+                trade_date=trade_date,
+                interval_minutes=None,
+                bars=(),
+                completed_uptrends=(),
+            )
         calculated_at = self._clock()
         one_minute_bars = self._store.bars_for_day(code, trade_date, interval_minutes=1)
         five_minute_bars = self._store.bars_for_day(code, trade_date, interval_minutes=5)

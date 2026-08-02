@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+import sqlite3
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
+
+import pytest
 
 from etf_t0.break_even_ledger import PaperExecutionOutcome, PaperExecutionRecord
 from etf_t0.fees import OrderSide
@@ -14,6 +18,7 @@ from etf_t0.trend_research import (
     detect_completed_uptrends,
 )
 from etf_t0.universe import load_universe_ledger
+from etf_t0.workbench_service import ResearchWorkbenchService
 
 LEDGER_PATH = Path("config/universe/t0_etf_ledger.json")
 
@@ -67,6 +72,30 @@ def test_store_lists_the_full_research_universe_and_isolates_target_bars(
         ("2026-07-28T09:40:00+08:00", "1.002", "1.004", "1.005", "1.001"),
     )
     assert store.bars_for_day("159920", date(2026, 7, 28), interval_minutes=5)[0][1] == "2.000"
+
+
+def test_read_only_store_queries_without_mutating_or_accepting_writes(tmp_path: Path) -> None:
+    database_path = tmp_path / "research.sqlite3"
+    writer = ResearchStore(database_path)
+    writer.sync_instruments(load_universe_ledger(LEDGER_PATH))
+    before = hashlib.sha256(database_path.read_bytes()).hexdigest()
+
+    reader = ResearchStore.open_read_only(database_path)
+
+    assert len(reader.list_instrument_capabilities()) == 16
+    assert reader.bars_for_day("159567", date(2026, 7, 28), interval_minutes=1) == ()
+    service = ResearchWorkbenchService(
+        store=reader,
+        parameters=TrendDetectionParameters("m3-uptrend-v1", 3, 20, 20),
+        clock=lambda: "2026-08-01T09:00:00+08:00",
+        expected_instrument_codes=frozenset(
+            record.code for record in load_universe_ledger(LEDGER_PATH)
+        ),
+    )
+    assert service.target_detail("159567", trade_date=date(2026, 7, 28)).status == "WAIT_DATA"
+    assert hashlib.sha256(database_path.read_bytes()).hexdigest() == before
+    with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        reader.sync_instruments(load_universe_ledger(LEDGER_PATH))
 
 
 def test_reingesting_the_same_bar_file_is_idempotent_and_keeps_lineage(

@@ -14,6 +14,12 @@ from etf_t0.universe import confirmed_t0_records, load_universe_ledger
 DATABASE_RELATIVE_PATH = Path("data/processed/research_workbench.sqlite3")
 
 
+def open_workspace_database_read_only(*, workspace: Path) -> ResearchStore:
+    """Open the rebuilt workspace database for desktop queries only."""
+
+    return ResearchStore.open_read_only(workspace / DATABASE_RELATIVE_PATH)
+
+
 def bootstrap_workspace_database(*, workspace: Path) -> ResearchStore:
     """Import locally retained native 5-minute files without fetching or altering them."""
 
@@ -126,6 +132,7 @@ def collect_one_minute_workspace(*, workspace: Path) -> dict:
         store=store,
         parameters=load_trend_detection_parameters(workspace / "config/trend_detection.json"),
         clock=lambda: str(report["collected_at"]),
+        expected_instrument_codes=frozenset(record.code for record in records),
     )
     for record in records:
         service.persist_completed_trends(record.code, trade_date=trade_date)

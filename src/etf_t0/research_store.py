@@ -71,6 +71,7 @@ class ResearchStore:
 
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
+        self._read_only = False
         self._database_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.executescript(
@@ -200,8 +201,31 @@ class ResearchStore:
             _ensure_ingestion_run_raw_payload_path(connection)
             _ensure_instrument_evidence_status(connection)
 
+    @classmethod
+    def open_read_only(cls, database_path: Path) -> ResearchStore:
+        """Open an existing database without schema bootstrap or migration writes."""
+
+        resolved_path = database_path.resolve()
+        if not resolved_path.is_file():
+            raise FileNotFoundError(
+                f"research database does not exist; run explicit bootstrap first: {resolved_path}"
+            )
+        store = cls.__new__(cls)
+        store._database_path = resolved_path
+        store._read_only = True
+        with store._connect() as connection:
+            connection.execute("SELECT 1 FROM instruments LIMIT 1").fetchone()
+        return store
+
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
+        if self._read_only:
+            connection = sqlite3.connect(
+                f"{self._database_path.as_uri()}?mode=ro",
+                uri=True,
+            )
+            connection.execute("PRAGMA query_only = ON")
+        else:
+            connection = sqlite3.connect(self._database_path)
         connection.row_factory = sqlite3.Row
         return connection
 
@@ -523,10 +547,27 @@ class ResearchStore:
                 latest_one_minute_bar_end=row["latest_one_minute_bar_end"],
                 t0_evidence_status=row["t0_evidence_status"],
                 last_review_date=row["last_review_date"],
-                research_gate_status="仅收盘研究；G2/G3未通过，非实盘准入",
+                research_gate_status=(
+                    "仅收盘研究；跨源数据门禁G2/"
+                    "券商可执行门禁G3未通过，非实盘准入"
+                ),
             )
             for row in rows
         )
+
+    def available_trade_dates(self) -> tuple[date, ...]:
+        """Return dates having native one- or five-minute bars, newest first."""
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT DISTINCT substr(bar_end, 1, 10) AS trade_date
+                FROM bar_vintages
+                WHERE interval_minutes IN (1, 5)
+                ORDER BY trade_date DESC
+                """
+            ).fetchall()
+        return tuple(date.fromisoformat(row["trade_date"]) for row in rows)
 
     def bars_for_day(
         self, code: str, trade_date: date, *, interval_minutes: int

@@ -19,6 +19,7 @@
 | 2026-07-28 | M3 多 ETF 本地工作台 | 16 标的能力列表、SQLite 标准化行情与趋势区间研究 | [PR #32](https://github.com/ganluCoding/etf_t-0_hk_stock/pull/32)，Issue #30 |
 | 2026-07-28 | M3 可用性修复 | 左侧显示代码/名称；详情页趋势、数据与说明分区 | [PR #34](https://github.com/ganluCoding/etf_t-0_hk_stock/pull/34)，Issue #33 |
 | 2026-08-01 | 回本账本与执行证据门禁 | 合法整手/现金检查、费用拆分、网格成本拒绝、总资金拆网格成本压力、三层执行证据、SQLite 人工纸面记录、不可变本地报告 | [PR #35](https://github.com/ganluCoding/etf_t-0_hk_stock/pull/35)，Issue #31；CI `test` 成功；本地 155 项测试和 `ruff` 通过 |
+| 2026-08-02 | M3 可靠性与执行证据方案 | SQLite 真只读、台账身份 fail-closed、最新日 x/16 覆盖、无数据/刷新/最小窗口修复，独立行情与招商盘口留证设计 | [PR #38](https://github.com/ganluCoding/etf_t-0_hk_stock/pull/38)，Issue #37；UX/数据/PRD 审计无 P0/P1；160 项测试与 `ruff` 通过 |
 
 ## 当前未完成事项
 
@@ -28,6 +29,7 @@
 | P0 | 前向采集与首日/持续质量验收 | 免费数据仍是 `UNVERIFIED RESEARCH FEED`；需要按版本化日历和数据质量规则积累证据 | [Issue #21](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/21) |
 | P1 | 交易日及跨市场错配标记 | 需要完成/复核正常重合日和错位日的可用数据验收 | [Issue #5](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/5) |
 | P1 | 保守策略仿真与准入 | 只能在 G0.5 费用/执行证据条件满足后推进；30 日样本不可作为盈利证明 | [Issue #9](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/9) |
+| P1 | 独立行情与招商盘口留证 | 已完成三源证据设计；待用户确认数据权限/成本并完成券商首日权限探针 | [Issue #37](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/37) |
 
 ## 交接与变更规则
 

@@ -1,7 +1,7 @@
 # 港股 ETF T+0 日内网格研究系统 PRD
 
-- 文档状态：Active v1.1
-- 更新日期：2026-08-01
+- 文档状态：Active v1.2
+- 更新日期：2026-08-02
 - 项目阶段：M1–M3 本地研究工作台与 G0.5 回本账本均已实现。当前公开网络数据固定标记为 `UNVERIFIED RESEARCH FEED`；G0 费用账单校准、G2 跨源/日历和 G3 券商可执行性/深度未通过，因此实盘准入始终为 No-Go。只有当前快照、连续因果 L48、资格、策略 lineage 与保守成本门禁全部通过时，才可显示带水印的纸面观察价
 - 目标用户：使用境内 A 股账户、人工完成买卖操作的个人投资者
 
@@ -13,6 +13,7 @@
 | 2026-07-28 | v0.9 | 修复工作台的 ETF 代码/名称可见性与数据分区 | PR #34 / Issue #33 |
 | 2026-08-01 | v1.0 | 增加 G0.5 回本账本、三层执行证据边界与 20 日人工纸面执行要求 | PR #35 / Issue #31 |
 | 2026-08-01 | v1.1 | 固化交接基线、当前阶段门状态与版本化项目活动记录 | `docs/PROJECT_ACTIVITY.md` |
+| 2026-08-02 | v1.2 | 增加桌面只读/最新完整日验收与独立行情、招商盘口留证方案 | PR #38 / Issue #37 |
 
 完整的合并、验证和运行活动见 `docs/PROJECT_ACTIVITY.md`；原始行情和生成报告继续保留在本机，不写入 Git。
 
@@ -53,6 +54,9 @@
 12. 提供本机桌面观察应用：首页展示首批16只研究标的及其数据能力，用户进入任一目标 ETF 后只观察该目标；应用读取已保存的本地费用与资金档案，输出趋势、数据质量、观察买入上限、观察卖出下限、有效期、成本覆盖和 No-Go 原因。
 13. 建立本机 SQLite 研究数据库保存标准化行情、数据质量、采集运行和可复现的趋势区间；原始供应商载荷继续保留为本机不可变文件及 DVC 指针。
 14. 收盘后从原生分钟数据识别连续上涨区间，并将“价格趋势”与“已由 bid/ask 和成本验证的可执行空间”明确分开显示。
+15. 桌面先验证 SQLite 标的集合与版本化 16 只台账完全一致，再默认打开最新至少一只 ETF 具有完整原生数据的交易日，显示截止日、覆盖度 x/16 与只读刷新结果，并区分“识别未运行”与“运行后无区间”。标的身份缺失、多余或错配时 fail-closed，禁用最新日导航并阻断所有目标的图表/趋势计算；左侧实际身份列表可保留供数据诊断。
+16. 将数据库建表/迁移限定在显式 bootstrap/采集路径；桌面查询使用 SQLite `mode=ro`，不得因打开或刷新而修改研究数据库。
+17. 建立当前公开源、独立行情源和招商证券可见盘口三条分离证据链；详细采集、脱敏、对齐和门禁见 `docs/EXECUTION_EVIDENCE_PLAN.md`。
 
 本项目的最终产物不是自动交易程序，而是：
 
@@ -262,8 +266,11 @@
 - Desktop service tests will assert that only an eligible target code is accepted; No-Go, expired and stale-data exit states contain no target quote, observation or break-even prices; both otherwise displayed prices share one snapshot and policy version; and all values use legal tick rounding.
 - Desktop presentation tests will assert that the primary screen contains no proxy trading control, broker action, order shortcut or guaranteed-profit wording, and that paper-observation status remains visible whenever G8 is unavailable.
 - Database integration tests will prove that all 16 configured instrument identities can be listed, bar and quote vintages retain source/run lineage, duplicate ingestion is idempotent, and one target cannot query another target’s data.
+- Desktop query tests will prove that SQLite opens in true read-only mode, cannot accept writes, and retains the same file hash after discovery and target-detail queries.
 - Trend-research tests will use fixed native-bar fixtures to verify predeclared completed intervals, duration, cumulative return and maximum pullback. They will assert that no interval contains future bars, that missing data yields `WAIT_DATA`, and that a bar-only interval has no executable-profit claim.
 - Desktop workbench tests will cover the 16-row capability list, target-only detail selection, historical versus current-day labels, data-quality presentation and at least two independent target detail paths.
+- Desktop workbench tests will require exact equality between configured and stored instrument codes, partial-date coverage x/16, the latest useful complete local date by default, explicit `WAIT_DATA` no-run wording, reload success/failure feedback, wrapped critical labels and recoverable scrolling at 1180×760.
+- Cross-source evidence tests will preserve source and receive times, reject future-aligned quotes, report rather than interpolate missing rows, and keep G2 and G3 as separate gates.
 - Manual-fill tests will bind a user-entered target fill to its originating decision, validate tick/lot/time/fee fields and recompute break-even status without mutating the original decision snapshot or delaying a mandatory exit.
 - Desktop clock and session tests will prove that UI input cannot override freshness time and that lunch, opening/closing auctions, post-close, resume and network recovery clear prices.
 - Stress tests will rerun the same policy under baseline, 1.5-times and 2-times transaction-cost assumptions.
@@ -332,6 +339,7 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - Issue #30 implements M3 multi-ETF research workbench: SQLite-backed local research records, 16-instrument capability discovery, independently persisted multi-symbol data, target detail trend charts and reproducible continuous-uptrend interval research. It does not grant a generic strategy or paper-trading price to every listed instrument.
 - Issue #31 已通过 PR #35 合并：实现回本账本、严格 OHLC/quote-aware/paper-execution 证据分层、人工纸面记录本机 SQLite 留存和不可变本地报告 lineage。它没有完成券商账单校准或券商可执行盘口验证；因此所有 M3 OHLC 趋势区间仍是描述性的 `NO_EXECUTABLE_QUOTES`。
 - The public web feed remains `UNVERIFIED RESEARCH FEED`. G2/G3 stay blocked until independent calendar/cross-source and broker-executable quote/depth validation are complete. They block controlled-live validation, but do not permanently hide explicitly watermarked paper prices after the current-snapshot, causal L48, eligibility, policy-lineage and conservative-cost gates pass.
+- Issue #37 定义桌面可靠性修复与三源证据方案：Tushare Pro 作为首选独立分钟候选，富途 OpenAPI 只读行情作为程序化盘口备选，招商客户端仍由用户手工留证；任一候选都不自动授予 G2/G3。
 - 用户录入成交结果的桌面流程、持仓状态驱动的强制退出细化、以及可分发的独立签名应用包装仍是后续垂直切片；M3 的目标 ETF 图表和本机启动脚本已实现。
 
 ### Primary References

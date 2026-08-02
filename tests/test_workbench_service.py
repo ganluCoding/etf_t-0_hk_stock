@@ -15,6 +15,7 @@ from etf_t0.workbench_service import (
 
 LEDGER_PATH = Path("config/universe/t0_etf_ledger.json")
 TREND_CONFIG_PATH = Path("config/trend_detection.json")
+EXPECTED_CODES = frozenset(record.code for record in load_universe_ledger(LEDGER_PATH))
 
 
 def _write_complete_one_minute_day(path: Path) -> None:
@@ -75,6 +76,7 @@ def test_target_detail_prefers_native_one_minute_bars_and_persists_uptrends(
             maximum_pullback_bps=20,
         ),
         clock=lambda: "2026-07-28T15:10:00+08:00",
+        expected_instrument_codes=EXPECTED_CODES,
     )
 
     detail = service.target_detail("159567", trade_date=date(2026, 7, 28))
@@ -87,6 +89,79 @@ def test_target_detail_prefers_native_one_minute_bars_and_persists_uptrends(
     assert store.completed_uptrends_for_day("159567", date(2026, 7, 28)) == ()
     service.persist_completed_trends("159567", trade_date=date(2026, 7, 28))
     assert len(store.completed_uptrends_for_day("159567", date(2026, 7, 28))) == 1
+
+
+def test_latest_complete_trade_date_reports_partial_then_full_coverage(
+    tmp_path: Path,
+) -> None:
+    store = ResearchStore(tmp_path / "research.sqlite3")
+    records = [
+        record
+        for record in load_universe_ledger(LEDGER_PATH)
+        if record.code in {"159567", "159920"}
+    ]
+    store.sync_instruments(records)
+    bars = tmp_path / "159567_1m.csv"
+    raw_payload = tmp_path / "159567.json"
+    _write_complete_one_minute_day(bars)
+    raw_payload.write_text('{"source":"fixture"}', encoding="utf-8")
+    store.ingest_native_bar_csv(
+        code="159567",
+        interval_minutes=1,
+        csv_path=bars,
+        raw_payload_path=raw_payload,
+        acquired_at="2026-07-28T15:10:00+08:00",
+        source_name="fixture",
+    )
+    service = ResearchWorkbenchService(
+        store=store,
+        parameters=TrendDetectionParameters("m3-uptrend-v1", 3, 20, 20),
+        clock=lambda: "2026-08-01T09:00:00+08:00",
+        expected_instrument_codes=frozenset(record.code for record in records),
+    )
+
+    assert service.latest_complete_trade_date() == date(2026, 7, 28)
+    assert service.latest_complete_coverage().complete_instrument_count == 1
+    assert service.latest_complete_coverage().status == "PARTIAL_COVERAGE"
+    store.ingest_native_bar_csv(
+        code="159920",
+        interval_minutes=1,
+        csv_path=bars,
+        raw_payload_path=raw_payload,
+        acquired_at="2026-07-28T15:11:00+08:00",
+        source_name="fixture",
+    )
+    assert service.latest_complete_trade_date() == date(2026, 7, 28)
+    assert service.latest_complete_coverage().complete_instrument_count == 2
+    assert service.latest_complete_coverage().status == "FULL_COVERAGE"
+
+
+def test_latest_complete_date_fails_closed_when_database_universe_is_incomplete(
+    tmp_path: Path,
+) -> None:
+    records = [
+        record
+        for record in load_universe_ledger(LEDGER_PATH)
+        if record.code in {"159567", "159920"}
+    ]
+    store = ResearchStore(tmp_path / "research.sqlite3")
+    store.sync_instruments([record for record in records if record.code == "159567"])
+    service = ResearchWorkbenchService(
+        store=store,
+        parameters=TrendDetectionParameters("m3-uptrend-v1", 3, 20, 20),
+        clock=lambda: "2026-08-01T09:00:00+08:00",
+        expected_instrument_codes=frozenset(record.code for record in records),
+    )
+
+    coverage = service.latest_complete_coverage()
+
+    assert coverage.trade_date is None
+    assert coverage.expected_instrument_count == 2
+    assert coverage.status == "WAIT_UNIVERSE_DATA"
+    blocked_detail = service.target_detail("159567", trade_date=date(2026, 7, 28))
+    assert blocked_detail.status == "WAIT_UNIVERSE_DATA"
+    assert blocked_detail.bars == ()
+    assert blocked_detail.completed_uptrends == ()
 
 
 def test_partial_session_never_creates_completed_trend_intervals(tmp_path: Path) -> None:
@@ -108,6 +183,7 @@ def test_partial_session_never_creates_completed_trend_intervals(tmp_path: Path)
         store=store,
         parameters=TrendDetectionParameters("m3-uptrend-v1", 3, 20, 20),
         clock=lambda: "2026-07-28T10:00:00+08:00",
+        expected_instrument_codes=EXPECTED_CODES,
     )
 
     detail = service.target_detail("159567", trade_date=date(2026, 7, 28))
@@ -138,6 +214,7 @@ def test_complete_time_labels_with_zero_ohlc_return_data_quality_wait_state(
         store=store,
         parameters=TrendDetectionParameters("m3-uptrend-v1", 3, 20, 20),
         clock=lambda: "2026-07-28T15:10:00+08:00",
+        expected_instrument_codes=EXPECTED_CODES,
     )
 
     detail = service.target_detail("159567", trade_date=date(2026, 7, 28))
@@ -165,6 +242,7 @@ def test_complete_five_minute_day_beats_incomplete_one_minute_day(tmp_path: Path
         store=store,
         parameters=TrendDetectionParameters("m3-uptrend-v1", 3, 20, 20),
         clock=lambda: "2026-07-28T15:10:00+08:00",
+        expected_instrument_codes=EXPECTED_CODES,
     )
 
     detail = service.target_detail("159567", trade_date=date(2026, 7, 28))
@@ -187,6 +265,7 @@ def test_target_detail_returns_wait_data_without_borrowing_another_etf_series(
             maximum_pullback_bps=20,
         ),
         clock=lambda: "2026-07-28T15:10:00+08:00",
+        expected_instrument_codes=EXPECTED_CODES,
     )
 
     detail = service.target_detail("159920", trade_date=date(2026, 7, 28))

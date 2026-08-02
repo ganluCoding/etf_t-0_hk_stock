@@ -11,6 +11,7 @@
 - [临时费用模型](docs/FEE_MODEL.md)
 - [回本账本（回测前成本门禁）](docs/BREAK_EVEN_LEDGER.md)
 - [数据版本规则](docs/DATA_VERSIONING.md)
+- [独立行情与招商盘口留证方案](docs/EXECUTION_EVIDENCE_PLAN.md)
 - [多策略与低频探索报告](reports/t0_etf_multi_strategy_exploration.md)
 - [159570/513780 前向采集手册](docs/FORWARD_COLLECTION.md)
 - [2026-07-27 159570 人工观察简报](reports/2026-07-27_159570_manual_observation_brief.md)
@@ -38,11 +39,11 @@ PYTHONPATH=src uv run python -m etf_t0.multi_strategy
 PYTHONPATH=src uv run python -m etf_t0.break_even_report
 # 仅用于非交易时段的 stale 链路探测，不产生有效样本
 PYTHONPATH=src uv run python -m etf_t0.forward_collection --allow-outside-session
-# M3多ETF研究工作台；使用本机SQLite与本地研究数据，不连接券商
-PYTHONPATH=src uv run python -m etf_t0.desktop_app
 # 导入既有本机原生数据到SQLite，或在收盘后采集16只ETF的一分钟窗口
 PYTHONPATH=src uv run python -m etf_t0.research_workbench bootstrap
 PYTHONPATH=src uv run python -m etf_t0.research_workbench collect-one-minute
+# M3多ETF研究工作台；以只读方式使用已建的本机SQLite，不连接券商
+PYTHONPATH=src uv run python -m etf_t0.desktop_app
 # M2当前纸面观察（当前仅159570有冻结策略）
 PYTHONPATH=src uv run python -m etf_t0.desktop_app --single-observation
 # 只有显式指定才启动M1固定夹具

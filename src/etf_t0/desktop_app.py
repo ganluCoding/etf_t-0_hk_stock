@@ -649,14 +649,17 @@ def main() -> None:
     app = QApplication([sys.argv[0], *qt_args])
     workspace = args.workspace or Path(__file__).resolve().parents[2]
     if not args.demo and not args.single_observation:
-        from etf_t0.research_workbench import bootstrap_workspace_database
+        from etf_t0.research_workbench import open_workspace_database_read_only
+        from etf_t0.universe import confirmed_t0_records, load_universe_ledger
         from etf_t0.workbench_app import WorkbenchWindow
         from etf_t0.workbench_service import (
             ResearchWorkbenchService,
             load_trend_detection_parameters,
         )
-
-        store = bootstrap_workspace_database(workspace=workspace)
+        store = open_workspace_database_read_only(workspace=workspace)
+        expected_records = confirmed_t0_records(
+            load_universe_ledger(workspace / "config/universe/t0_etf_ledger.json")
+        )
         workbench = WorkbenchWindow(
             service=ResearchWorkbenchService(
                 store=store,
@@ -664,6 +667,9 @@ def main() -> None:
                     workspace / "config/trend_detection.json"
                 ),
                 clock=lambda: datetime.now(SHANGHAI).isoformat(timespec="seconds"),
+                expected_instrument_codes=frozenset(
+                    record.code for record in expected_records
+                ),
             ),
             trade_date=datetime.now(SHANGHAI).date(),
         )
