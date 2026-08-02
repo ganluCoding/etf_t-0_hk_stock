@@ -5,7 +5,7 @@
 ## 当前基线
 
 - 仓库：`ganluCoding/etf_t-0_hk_stock`
-- 功能代码基线：`03ece44`（2026-08-01，PR #35）；文档交接基线由本文件所在的合并提交确定。
+- 功能与文档基线：`dae0bb7`（2026-08-02，PR #38）；后续合并提交按本表继续追加。
 - 当前产品状态：研究与人工决策支持；**不是**自动交易程序，也不是实盘策略准入。
 - 当前实盘准入：No-Go。G0、G2、G3 及后续验证门未通过。
 - 本机生成的最新 OHLC 回本账本：16 个已确认研究标的、1 万/3 万资金档、3 个网格间距和 2 个费用情景共 192 行；可进入回测/执行的行数为 0。该结果是缺少费用与可执行盘口证据时的预期 fail-closed 行为。
@@ -29,7 +29,7 @@
 | P0 | 前向采集与首日/持续质量验收 | 免费数据仍是 `UNVERIFIED RESEARCH FEED`；需要按版本化日历和数据质量规则积累证据 | [Issue #21](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/21) |
 | P1 | 交易日及跨市场错配标记 | 需要完成/复核正常重合日和错位日的可用数据验收 | [Issue #5](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/5) |
 | P1 | 保守策略仿真与准入 | 只能在 G0.5 费用/执行证据条件满足后推进；30 日样本不可作为盈利证明 | [Issue #9](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/9) |
-| P1 | 独立行情与招商盘口留证 | 已完成三源证据设计；待用户确认数据权限/成本并完成券商首日权限探针 | [Issue #37](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/37) |
+| P1 | 独立行情与招商盘口留证 | 三源证据设计已由 Issue #37 / PR #38 完成；待用户确认数据权限/成本、完成券商首日探针，再实施 adapter、3日跨源核验与20日纸面执行 | [Issue #39](https://github.com/ganluCoding/etf_t-0_hk_stock/issues/39) |
 
 ## 交接与变更规则
 
