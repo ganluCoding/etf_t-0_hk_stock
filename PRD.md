@@ -340,6 +340,7 @@ G0 does not block raw-data acquisition, data-quality work or descriptive 30-day 
 - Issue #31 已通过 PR #35 合并：实现回本账本、严格 OHLC/quote-aware/paper-execution 证据分层、人工纸面记录本机 SQLite 留存和不可变本地报告 lineage。它没有完成券商账单校准或券商可执行盘口验证；因此所有 M3 OHLC 趋势区间仍是描述性的 `NO_EXECUTABLE_QUOTES`。
 - The public web feed remains `UNVERIFIED RESEARCH FEED`. G2/G3 stay blocked until independent calendar/cross-source and broker-executable quote/depth validation are complete. They block controlled-live validation, but do not permanently hide explicitly watermarked paper prices after the current-snapshot, causal L48, eligibility, policy-lineage and conservative-cost gates pass.
 - Issue #37 定义桌面可靠性修复与三源证据方案：Tushare Pro 作为首选独立分钟候选，富途 OpenAPI 只读行情作为程序化盘口备选，招商客户端仍由用户手工留证；任一候选都不自动授予 G2/G3。
+- Issue #39 跟踪上述设计的实施：数据权限/上游来源探针、16标的 adapter、3日跨源核验、招商首日手工权限探针与20日纸面执行；它是开放的后续工作，不由已关闭的设计 Issue #37 继续承载。
 - 用户录入成交结果的桌面流程、持仓状态驱动的强制退出细化、以及可分发的独立签名应用包装仍是后续垂直切片；M3 的目标 ETF 图表和本机启动脚本已实现。
 
 ### Primary References
