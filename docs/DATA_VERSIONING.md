@@ -28,6 +28,12 @@
 PYTHONPATH=src uv run python -m etf_t0.research_workbench bootstrap
 ```
 
+`bootstrap` 是唯一的 schema 建立/迁移与重建路径。默认桌面进程以 SQLite `mode=ro`
+打开数据库，列表、目标详情和“重新读取”都不允许建表、迁移或改写。首次启动前若数据库不存在，必须先显式运行上述命令。
+
+独立行情和券商留证的目录、脱敏与版本边界见
+[`EXECUTION_EVIDENCE_PLAN.md`](EXECUTION_EVIDENCE_PLAN.md)。
+
 工作日15:07的本地定时任务会运行 `collect-one-minute`，逐只保存16只ETF的供应商原生一分钟窗口。趋势区间只使用已完成bar收盘价，并保存检测参数版本、输入截止时间和计算时间；它不包含任何券商账号或自动下单记录。
 
 ## 禁止提交

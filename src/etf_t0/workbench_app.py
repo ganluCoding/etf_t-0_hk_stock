@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Iterable
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from PySide6.QtCore import QDate, QPointF, Qt
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QDateEdit,
     QFrame,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QMainWindow,
@@ -26,6 +29,8 @@ from PySide6.QtWidgets import (
 
 from etf_t0.trend_research import CompletedUptrend
 from etf_t0.workbench_service import ResearchWorkbenchService, TargetTrendDetail
+
+SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
 class TrendChart(QWidget):
@@ -94,11 +99,14 @@ class WorkbenchWindow(QMainWindow):
     def __init__(self, *, service: ResearchWorkbenchService, trade_date: date) -> None:
         super().__init__()
         self._service = service
-        self._trade_date = trade_date
+        self._latest_coverage = service.latest_complete_coverage()
+        self._latest_complete_date = self._latest_coverage.trade_date
+        self._trade_date = self._latest_complete_date or trade_date
         self._selected_code: str | None = None
         self.setWindowTitle("T+0 ETF 研究工作台 — M3｜本地数据｜不会自动下单")
         self.setMinimumSize(1180, 760)
         self.setCentralWidget(self._build_content())
+        self._update_latest_date_controls()
         self._populate_instruments()
         self._apply_style()
 
@@ -112,17 +120,28 @@ class WorkbenchWindow(QMainWindow):
             "16只研究标的｜收盘后原生趋势研究｜不会自动下单｜上涨区间不代表下一笔交易建议"
         )
         subtitle.setObjectName("subtitleLabel")
+        subtitle.setWordWrap(True)
         layout.addWidget(title)
         layout.addWidget(subtitle)
 
+        date_controls = QHBoxLayout()
+        date_controls.addWidget(QLabel("研究日期（可查看任意已完成交易日）："))
         date_picker = QDateEdit(
             QDate(self._trade_date.year, self._trade_date.month, self._trade_date.day)
         )
         date_picker.setObjectName("tradeDatePicker")
         date_picker.setCalendarPopup(True)
+        date_picker.setDisplayFormat("yyyy-MM-dd")
         date_picker.dateChanged.connect(self._selected_date_changed)
-        layout.addWidget(QLabel("研究日期（可查看任意已完成交易日）："))
-        layout.addWidget(date_picker)
+        date_controls.addWidget(date_picker)
+        latest_button = QPushButton("跳至最新有数据日")
+        latest_button.setObjectName("latestDateButton")
+        latest_button.clicked.connect(self._go_to_latest_complete_date)
+        date_controls.addWidget(latest_button)
+        latest_data_label = QLabel()
+        latest_data_label.setObjectName("latestDataLabel")
+        date_controls.addWidget(latest_data_label, 1)
+        layout.addLayout(date_controls)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setObjectName("workbenchSplitter")
@@ -154,22 +173,29 @@ class WorkbenchWindow(QMainWindow):
         detail_title.setObjectName("detailTitle")
         detail_status = QLabel("状态：等待选择")
         detail_status.setObjectName("detailStatus")
+        detail_status.setWordWrap(True)
+        detail_status.setMinimumHeight(detail_status.fontMetrics().lineSpacing() * 7 + 8)
         chart_caption = QLabel("收盘趋势：—")
         chart_caption.setObjectName("chartCaption")
+        chart_caption.setWordWrap(True)
         day_stats = QLabel("今日变动：—")
         day_stats.setObjectName("dayStats")
+        day_stats.setWordWrap(True)
         chart = TrendChart()
         trend_summary = QLabel("连续上涨区间：—")
         trend_summary.setObjectName("trendSummary")
+        trend_summary.setWordWrap(True)
         interval_list = QTextEdit("区间明细：—")
         interval_list.setObjectName("intervalList")
         interval_list.setReadOnly(True)
         interval_list.setMinimumHeight(170)
         interval_list.setMaximumHeight(220)
         disclaimer = QLabel(
-            "研究提示：图形和上涨区间仅由已完成原生bar计算。没有对应盘口时，不能证明成交或短线利润。"
+            "研究提示：图形和上涨区间仅由已完成原生分钟K线计算。"
+            "没有对应盘口时，不能证明成交或短线利润。"
         )
         disclaimer.setObjectName("disclaimerLabel")
+        disclaimer.setWordWrap(True)
 
         overview_panel, overview_layout = _section_panel("标的概览", "overviewPanel")
         overview_layout.addWidget(detail_title)
@@ -190,6 +216,7 @@ class WorkbenchWindow(QMainWindow):
         detail_scroll.setObjectName("detailScrollArea")
         detail_scroll.setWidgetResizable(True)
         detail_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        detail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         detail_scroll.setWidget(detail)
         splitter.addWidget(detail_scroll)
         splitter.setSizes([430, 750])
@@ -197,8 +224,14 @@ class WorkbenchWindow(QMainWindow):
 
         reload_button = QPushButton("重新读取本机数据库")
         reload_button.setObjectName("reloadButton")
-        reload_button.clicked.connect(self._populate_instruments)
-        layout.addWidget(reload_button, alignment=Qt.AlignmentFlag.AlignRight)
+        reload_button.clicked.connect(self._reload_database)
+        reload_status = QLabel("本机数据库：等待读取")
+        reload_status.setObjectName("reloadStatusLabel")
+        reload_status.setWordWrap(True)
+        reload_row = QHBoxLayout()
+        reload_row.addWidget(reload_status, 1)
+        reload_row.addWidget(reload_button)
+        layout.addLayout(reload_row)
         return root
 
     def _populate_instruments(self) -> None:
@@ -213,6 +246,56 @@ class WorkbenchWindow(QMainWindow):
             for column, value in enumerate(values):
                 table.setItem(row, column, QTableWidgetItem(value))
         table.setColumnWidth(0, 82)
+
+    def _reload_database(self) -> None:
+        button = self.findChild(QPushButton, "reloadButton")
+        status = self.findChild(QLabel, "reloadStatusLabel")
+        button.setEnabled(False)
+        button.setText("正在读取…")
+        status.setText("正在读取本机数据库…")
+        try:
+            self._populate_instruments()
+            self._latest_coverage = self._service.latest_complete_coverage()
+            self._latest_complete_date = self._latest_coverage.trade_date
+            self._update_latest_date_controls()
+            if self._selected_code is not None:
+                self.show_target(self._selected_code)
+        except (OSError, sqlite3.Error, ValueError) as error:
+            status.setText(f"读取失败：请确认数据库存在且未损坏后重试｜{error}")
+        else:
+            observed_at = datetime.now(SHANGHAI).strftime("%H:%M:%S")
+            status.setText(f"读取成功：{observed_at}｜仅查询，未改写数据库")
+        finally:
+            button.setEnabled(True)
+            button.setText("重新读取本机数据库")
+
+    def _update_latest_date_controls(self) -> None:
+        label = self.findChild(QLabel, "latestDataLabel")
+        button = self.findChild(QPushButton, "latestDateButton")
+        if self._latest_coverage.status == "WAIT_UNIVERSE_DATA":
+            label.setText(
+                f"本机标的台账不完整：期待 {self._latest_coverage.expected_instrument_count} 只"
+            )
+            button.setEnabled(False)
+            return
+        if self._latest_complete_date is None:
+            label.setText("本机尚无完整ETF交易日")
+            button.setEnabled(False)
+            return
+        label.setText(
+            f"最新完整ETF数据：{self._latest_complete_date}｜"
+            f"覆盖 {self._latest_coverage.complete_instrument_count}/"
+            f"{self._latest_coverage.expected_instrument_count}"
+        )
+        button.setEnabled(True)
+
+    def _go_to_latest_complete_date(self) -> None:
+        if self._latest_complete_date is None:
+            return
+        selected = self._latest_complete_date
+        self.findChild(QDateEdit, "tradeDatePicker").setDate(
+            QDate(selected.year, selected.month, selected.day)
+        )
 
     def _selected_row_changed(self) -> None:
         table = self.findChild(QTableWidget, "instrumentTable")
@@ -236,14 +319,23 @@ class WorkbenchWindow(QMainWindow):
         )
         status_text = {
             "RESEARCH_READY": "状态：本地收盘研究可用",
+            "WAIT_UNIVERSE_DATA": (
+                "状态：WAIT-UNIVERSE-DATA｜本机标的台账与版本化配置不一致，"
+                "详情研究已阻断"
+            ),
             "WAIT_COMPLETE_DAY": "状态：WAIT-COMPLETE-DAY｜本地序列不完整，不能生成收盘区间",
-            "WAIT_DATA_QUALITY": "状态：WAIT-DATA-QUALITY｜供应商OHLC字段异常，不能生成趋势区间",
+            "WAIT_DATA_QUALITY": (
+                "状态：WAIT-DATA-QUALITY｜供应商开盘/最高/最低/"
+                "收盘（OHLC）字段异常，不能生成趋势区间"
+            ),
             "WAIT_DATA": "状态：WAIT-DATA｜该ETF没有可用本地当日序列",
         }[detail.status]
         self.findChild(QLabel, "detailStatus").setText(
             f"{status_text}\n资格：{detail.capability.t0_evidence_status}｜"
-            f"状态：{detail.capability.security_status}｜复核：{detail.capability.last_review_date}\n"
-            f"模式：{detail.capability.paper_policy_status}｜{detail.capability.research_gate_status}\n"
+            f"状态：{_format_security_status(detail.capability.security_status)}｜"
+            f"复核：{detail.capability.last_review_date}\n"
+            f"模式：{detail.capability.paper_policy_status}\n"
+            f"门禁：{detail.capability.research_gate_status}\n"
             "费用：仅使用用户待核实的券商费率；本页不生成买卖价格。"
         )
         self.findChild(QLabel, "chartCaption").setText(
@@ -260,7 +352,7 @@ class WorkbenchWindow(QMainWindow):
             f"连续上涨区间：{len(detail.completed_uptrends)} 个｜"
             "仅收盘价描述，未证明可成交利润"
             if detail.status == "RESEARCH_READY"
-            else "连续上涨区间：—"
+            else "连续上涨区间：识别未运行"
         )
         self.findChild(QLabel, "trendSummary").setText(summary)
         self.findChild(QTextEdit, "intervalList").setPlainText(_format_intervals(detail))
@@ -305,8 +397,25 @@ def _section_panel(title: str, object_name: str) -> tuple[QFrame, QVBoxLayout]:
     return panel, layout
 
 
+def _format_security_status(status: str) -> str:
+    return {
+        "listed": "正常上市（listed）",
+        "suspended": "停牌（suspended）",
+        "delisted": "已终止上市（delisted）",
+        "unknown": "待核验（unknown）",
+    }.get(status, f"待核验（{status}）")
+
+
 def _format_intervals(detail: TargetTrendDetail) -> str:
     if not detail.completed_uptrends:
+        if detail.status == "WAIT_DATA":
+            return "区间识别未运行：该日期没有该ETF的本地原生1分钟或5分钟数据。"
+        if detail.status == "WAIT_UNIVERSE_DATA":
+            return "区间识别未运行：本机标的台账与版本化配置不一致。"
+        if detail.status == "WAIT_COMPLETE_DAY":
+            return "区间识别未运行：该日原生序列不完整。"
+        if detail.status == "WAIT_DATA_QUALITY":
+            return "区间识别未运行：开盘/最高/最低/收盘（OHLC）字段未通过数据质量检查。"
         return "区间明细：未达到当前预设的持续时间、涨幅和回撤条件。"
     rows = ["区间明细（均为收盘后描述性结果）："]
     for interval in detail.completed_uptrends:

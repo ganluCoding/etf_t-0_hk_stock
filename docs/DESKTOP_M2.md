@@ -26,11 +26,13 @@ M2 单标的观察程序可以：
 
 ```bash
 uv sync --all-groups
+# 首次启动或需要从本机原始/中间数据重建 SQLite 时才运行
+PYTHONPATH=src uv run python -m etf_t0.research_workbench bootstrap
 # 默认打开16只ETF的M3收盘研究工作台
 PYTHONPATH=src uv run python -m etf_t0.desktop_app
 ```
 
-从左侧16只ETF列表选择一个标的，即可查看它在本机数据库中的当日趋势、完整历史日数、上涨区间与数据状态。绿色图段表示已识别的收盘后上涨区间；它不是下单指令，也不代表已可成交利润。M2单标的纸面观察需要显式使用：
+默认桌面进程仅只读打开已建 SQLite，不会因启动或刷新而扫描导入、建表或迁移。数据库必须恰好包含版本化台账的 16 只 ETF；身份一致后，界面自动打开最新至少一只具有完整原生序列的交易日，并显示覆盖度 x/16；切到无数据日期后会明确显示识别未运行。从左侧16只ETF列表选择一个标的，即可查看它在本机数据库中的当日趋势、完整历史日数、上涨区间与数据状态。绿色图段表示已识别的收盘后上涨区间；它不是下单指令，也不代表已可成交利润。M2单标的纸面观察需要显式使用：
 
 ```bash
 PYTHONPATH=src uv run python -m etf_t0.desktop_app --single-observation
